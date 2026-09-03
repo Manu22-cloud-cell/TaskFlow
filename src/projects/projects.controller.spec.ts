@@ -1,15 +1,22 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { ProjectsController } from './projects.controller.js';
+import { ProjectsService } from './projects.service.js';
 
 describe('ProjectsController', () => {
   let controller: ProjectsController;
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [ProjectsController],
-    }).compile();
+  const mockProjectsService = {
+    findAll: jest.fn(),
+    findOne: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    remove: jest.fn(),
+  };
 
-    controller = module.get<ProjectsController>(ProjectsController);
+  beforeEach(() => {
+    controller = new ProjectsController(
+      mockProjectsService as unknown as ProjectsService,
+    );
   });
 
   it('should be defined', () => {
