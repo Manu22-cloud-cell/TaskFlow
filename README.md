@@ -1,114 +1,468 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# TaskFlow
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+TaskFlow is a backend task management application built with **NestJS, PostgreSQL, and Prisma**.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+It provides APIs for managing users, projects, and tasks, with JWT-based authentication and a test-driven development approach using Jest.
 
-## Description
+The project is designed as a practical backend application for learning and demonstrating production-oriented backend development concepts such as modular architecture, dependency injection, relational database design, authentication, validation, testing, and Git-based development workflows.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## 🚀 Features
 
-## Project setup
+### Users
 
-```bash
-$ npm install
+* Create users
+* Retrieve users
+* Retrieve a user by ID
+* Update user details
+* Delete users
+* Password hashing using bcrypt
+* Passwords are never returned in API responses
+
+### Authentication
+
+* User registration
+* User login
+* Password verification using bcrypt
+* JWT access-token generation
+* Protected authentication flow
+* Invalid credentials return `401 Unauthorized`
+
+### Projects
+
+* Create projects
+* Retrieve projects
+* Retrieve a project by ID
+* Update projects
+* Delete projects
+* Project ownership through users
+* Project status management
+
+### Tasks
+
+* Create tasks
+* Retrieve tasks
+* Retrieve a task by ID
+* Update tasks
+* Delete tasks
+* Assign tasks to users
+* Associate tasks with projects
+* Task status and priority management
+* Optional due dates
+
+### Testing
+
+* Jest unit tests
+* Service-layer testing with mocked Prisma dependencies
+* Controller tests
+* Authentication service tests
+* Validation and error scenarios
+
+## 🛠️ Tech Stack
+
+| Technology      | Purpose                  |
+| --------------- | ------------------------ |
+| NestJS          | Backend framework        |
+| TypeScript      | Programming language     |
+| PostgreSQL      | Relational database      |
+| Prisma          | ORM and database toolkit |
+| bcrypt          | Password hashing         |
+| JWT             | Authentication           |
+| Jest            | Unit testing             |
+| class-validator | Request validation       |
+| Postman         | API testing              |
+
+## 🏗️ Architecture
+
+TaskFlow follows NestJS's modular architecture:
+
+```text
+src/
+├── auth/
+│   ├── dto/
+│   ├── auth.controller.ts
+│   ├── auth.service.ts
+│   └── auth.module.ts
+│
+├── users/
+│   ├── dto/
+│   ├── users.controller.ts
+│   ├── users.service.ts
+│   └── users.module.ts
+│
+├── projects/
+│   ├── dto/
+│   ├── projects.controller.ts
+│   ├── projects.service.ts
+│   └── projects.module.ts
+│
+├── tasks/
+│   ├── dto/
+│   ├── tasks.controller.ts
+│   ├── tasks.service.ts
+│   └── tasks.module.ts
+│
+├── prisma/
+│   ├── prisma.module.ts
+│   └── prisma.service.ts
+│
+├── app.module.ts
+└── main.ts
 ```
 
-## Compile and run the project
+The application follows the typical NestJS request flow:
 
-```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+```text
+HTTP Request
+     ↓
+Controller
+     ↓
+DTO Validation
+     ↓
+Service
+     ↓
+Prisma
+     ↓
+PostgreSQL
+     ↓
+HTTP Response
 ```
 
-## Run tests
+## 🗄️ Database
 
-```bash
-# unit tests
-$ npm run test
+TaskFlow uses PostgreSQL with Prisma ORM.
 
-# e2e tests
-$ npm run test:e2e
+Current core entities:
 
-# test coverage
-$ npm run test:cov
+```text
+User
+ │
+ ├── owns → Project
+ │             │
+ │             └── contains → Task
+ │
+ └── assigned to → Task
 ```
 
-## Deployment
+The main relationships are:
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+* One User can own many Projects.
+* One Project can contain many Tasks.
+* One User can be assigned many Tasks.
+* A Task belongs to one Project.
+* A Task can optionally be assigned to a User.
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+The Prisma schema is located at:
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+```text
+prisma/schema.prisma
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## 🔐 Authentication
 
-## Observability
+TaskFlow uses JWT-based authentication.
 
-In production applications, observability is essential for understanding how your system behaves, detecting issues early, and maintaining reliable performance.
+### Register
 
-[NestJS Observe](https://observe.nestjs.com) automatically instruments your NestJS application, giving you deep visibility into your system with minimal setup:
+```http
+POST /auth/register
+```
 
-- **Distributed tracing:** Follow requests across services and understand how they flow through your system.
-- **Waterfall analysis:** Visualize request execution and identify slow operations, bottlenecks, and unexpected delays.
-- **Performance analysis:** Analyze application performance in real time and quickly pinpoint areas that need optimization.
-- **Metrics:** Track key application and infrastructure metrics to understand system health and performance trends.
-- **Logging:** Centralize and correlate logs with traces and other telemetry to make debugging easier.
-- **Error tracking:** Detect errors quickly and investigate their root causes with the surrounding context.
-- **SLA monitoring:** Track service-level objectives and identify when your application is approaching or exceeding defined thresholds.
-- **Alarms and alerts:** Set up alerts for critical errors, performance degradation, SLA violations, and other anomalies so your team can react quickly.
+Example request:
 
-## Resources
+```json
+{
+  "name": "Test User",
+  "email": "testuser@example.com",
+  "password": "password123"
+}
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+Example response:
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Auto-instrument your application with [NestJS Observer](https://observer.nestjs.com). Distributed tracing, metrics, and logging made easy. Error tracking and performance monitoring for your NestJS applications.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+```json
+{
+  "id": 1,
+  "name": "Test User",
+  "email": "testuser@example.com",
+  "createdAt": "2026-09-04T05:57:51.635Z",
+  "updatedAt": "2026-09-04T05:57:51.635Z"
+}
+```
 
-## Support
+Passwords are hashed before being stored and are never included in the response.
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+### Login
 
-## Stay in touch
+```http
+POST /auth/login
+```
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+Example request:
 
-## License
+```json
+{
+  "email": "testuser@example.com",
+  "password": "password123"
+}
+```
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Example response:
+
+```json
+{
+  "accessToken": "eyJ...",
+  "user": {
+    "id": 1,
+    "name": "Test User",
+    "email": "testuser@example.com"
+  }
+}
+```
+
+Invalid credentials return:
+
+```http
+401 Unauthorized
+```
+
+with:
+
+```json
+{
+  "message": "Invalid email or password",
+  "error": "Unauthorized",
+  "statusCode": 401
+}
+```
+
+## 📡 API Endpoints
+
+### Authentication
+
+| Method | Endpoint         | Description           |
+| ------ | ---------------- | --------------------- |
+| POST   | `/auth/register` | Register a new user   |
+| POST   | `/auth/login`    | Login and receive JWT |
+
+### Users
+
+| Method | Endpoint     | Description    |
+| ------ | ------------ | -------------- |
+| POST   | `/users`     | Create user    |
+| GET    | `/users`     | Get all users  |
+| GET    | `/users/:id` | Get user by ID |
+| PATCH  | `/users/:id` | Update user    |
+| DELETE | `/users/:id` | Delete user    |
+
+### Projects
+
+| Method | Endpoint        | Description       |
+| ------ | --------------- | ----------------- |
+| POST   | `/projects`     | Create project    |
+| GET    | `/projects`     | Get all projects  |
+| GET    | `/projects/:id` | Get project by ID |
+| PATCH  | `/projects/:id` | Update project    |
+| DELETE | `/projects/:id` | Delete project    |
+
+### Tasks
+
+| Method | Endpoint     | Description    |
+| ------ | ------------ | -------------- |
+| POST   | `/tasks`     | Create task    |
+| GET    | `/tasks`     | Get all tasks  |
+| GET    | `/tasks/:id` | Get task by ID |
+| PATCH  | `/tasks/:id` | Update task    |
+| DELETE | `/tasks/:id` | Delete task    |
+
+## ⚙️ Project Setup
+
+### Prerequisites
+
+Make sure the following are installed:
+
+* Node.js
+* npm
+* PostgreSQL
+
+### 1. Clone the repository
+
+```bash
+git clone <repository-url>
+cd taskflow
+```
+
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+### 3. Configure environment variables
+
+Create a `.env` file in the project root:
+
+```env
+PORT=3000
+
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=your_postgres_username
+DB_PASSWORD=your_postgres_password
+DB_NAME=taskflow
+
+DATABASE_URL="postgresql://your_postgres_username:your_postgres_password@localhost:5432/taskflow"
+
+JWT_SECRET=your-super-secret-key
+JWT_EXPIRES_IN=15m
+```
+
+> Never commit `.env` or real secrets to Git.
+
+### 4. Create the database
+
+Make sure PostgreSQL is running and create the `taskflow` database.
+
+### 5. Run Prisma migrations
+
+```bash
+npx prisma migrate dev
+```
+
+### 6. Generate Prisma Client
+
+```bash
+npx prisma generate
+```
+
+## ▶️ Running the Application
+
+### Development
+
+```bash
+npm run start
+```
+
+### Watch mode
+
+```bash
+npm run start:dev
+```
+
+The application runs on:
+
+```text
+http://localhost:3000
+```
+
+## 🧪 Testing
+
+Run all unit tests:
+
+```bash
+npm test
+```
+
+Run tests in watch mode:
+
+```bash
+npm run test:watch
+```
+
+Run a specific test file:
+
+```bash
+npm test -- auth.service.spec.ts
+```
+
+Build the application:
+
+```bash
+npm run build
+```
+
+The project follows the principle:
+
+> **No PR should be merged without appropriate tests.**
+
+Current test coverage includes:
+
+* Users service
+* Users controller
+* Projects service
+* Projects controller
+* Tasks service
+* Tasks controller
+* Auth service
+* Auth controller
+
+## 🔄 Development Workflow
+
+Feature development follows a Git branch and pull-request workflow.
+
+Example:
+
+```bash
+git checkout main
+git pull origin main
+
+git checkout -b feature/example-feature
+```
+
+After implementation:
+
+```bash
+npm test
+npm run build
+git status
+git diff
+```
+
+Then commit and push:
+
+```bash
+git add .
+git commit -m "feat: add example feature"
+git push -u origin feature/example-feature
+```
+
+Before requesting review:
+
+* Run the complete test suite.
+* Run the production build.
+* Review your own diff.
+* Verify the PR checklist.
+* Confirm no secrets or generated files are committed.
+* Confirm tests cover the implemented behavior.
+
+## 📚 Development Documentation
+
+For detailed information about the project's engineering practices, architecture, database design, testing strategy, and development setup, see:
+
+```text
+docs/DEVELOPMENT.md
+```
+
+This document contains deeper technical documentation that is intentionally kept separate from this high-level README.
+
+## 🗺️ Roadmap
+
+Planned improvements include:
+
+* Refresh-token rotation
+* JWT authentication guard
+* Role-based authorization
+* Admin / Manager / Member roles
+* Project members
+* Task comments
+* Task activity/audit history
+* Labels and tags
+* Subtasks
+* Task dependencies
+* Pagination and filtering
+* Swagger/OpenAPI documentation
+* End-to-end testing
+* Notifications and real-time updates
+
+## 📄 License
+
+This project is currently intended as a learning and portfolio project.
