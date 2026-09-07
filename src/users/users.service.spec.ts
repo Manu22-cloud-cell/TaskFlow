@@ -1,4 +1,7 @@
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 jest.unstable_mockModule('bcrypt', () => ({
@@ -106,7 +109,9 @@ describe('UsersService', () => {
 
       const hashedPassword = 'hashed-password';
 
-      (bcrypt.hash as jest.Mock).mockResolvedValue(hashedPassword);
+      (bcrypt.hash as jest.Mock).mockResolvedValue(
+        hashedPassword,
+      );
 
       prisma.user.findUnique.mockResolvedValue(null);
 
@@ -121,7 +126,10 @@ describe('UsersService', () => {
 
       const result = await service.create(dto);
 
-      expect(bcrypt.hash).toHaveBeenCalledWith(dto.password, 10);
+      expect(bcrypt.hash).toHaveBeenCalledWith(
+        dto.password,
+        10,
+      );
 
       expect(prisma.user.create).toHaveBeenCalledWith({
         data: {
@@ -208,7 +216,9 @@ describe('UsersService', () => {
 
       await expect(
         service.update(999, { name: 'Updated User' }),
-      ).rejects.toThrow(new NotFoundException('User not found'));
+      ).rejects.toThrow(
+        new NotFoundException('User not found'),
+      );
 
       expect(prisma.user.update).not.toHaveBeenCalled();
     });
@@ -235,7 +245,9 @@ describe('UsersService', () => {
         service.update(1, {
           email: 'user2@example.com',
         }),
-      ).rejects.toThrow(new ConflictException('Email already exists'));
+      ).rejects.toThrow(
+        new ConflictException('Email already exists'),
+      );
 
       expect(prisma.user.update).not.toHaveBeenCalled();
     });
@@ -250,8 +262,10 @@ describe('UsersService', () => {
 
       const hashedPassword = 'new-hash';
 
-      (bcrypt.hash as jest.Mock).mockResolvedValue(hashedPassword);
-      
+      (bcrypt.hash as jest.Mock).mockResolvedValue(
+        hashedPassword,
+      );
+
       prisma.user.findUnique.mockResolvedValue(existingUser);
 
       prisma.user.update.mockResolvedValue({
@@ -266,7 +280,10 @@ describe('UsersService', () => {
         password: 'new-password',
       });
 
-      expect(bcrypt.hash).toHaveBeenCalledWith('new-password', 10);
+      expect(bcrypt.hash).toHaveBeenCalledWith(
+        'new-password',
+        10,
+      );
 
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: {
@@ -319,4 +336,32 @@ describe('UsersService', () => {
       expect(prisma.user.delete).not.toHaveBeenCalled();
     });
   });
+
+  describe('updateRefreshToken', () => {
+    it('should update the refresh token hash and expiry', async () => {
+      const refreshTokenHash = 'hashed-refresh-token';
+      const refreshTokenExpiresAt = new Date(
+        Date.now() + 7 * 24 * 60 * 60 * 1000,
+      );
+
+      prisma.user.update.mockResolvedValue({});
+
+      await service.updateRefreshToken(
+        1,
+        refreshTokenHash,
+        refreshTokenExpiresAt,
+      );
+
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: {
+          id: 1,
+        },
+        data: {
+          refreshTokenHash,
+          refreshTokenExpiresAt,
+        },
+      });
+    });
+  });
 });
+
