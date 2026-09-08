@@ -27,11 +27,18 @@ enum TaskPriority {
   HIGH
 }
 
+enum UserRole {
+  ADMIN
+  MANAGER
+  MEMBER
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   name      String
   email     String   @unique
   password  String
+  role                  UserRole @default(MEMBER)
   refreshTokenHash      String?
   refreshTokenExpiresAt DateTime?
   createdAt DateTime @default(now())

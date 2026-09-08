@@ -49,6 +49,7 @@ export class AuthService {
     const payload = {
       sub: user.id,
       email: user.email,
+      role: user.role,
     };
 
     const accessToken =
@@ -203,11 +204,11 @@ export class AuthService {
      * Step 5:
      * Generate a new access token.
      */
-    const newAccessToken =
-      await this.jwtService.signAsync({
-        sub: user.id,
-        email: user.email,
-      });
+    const newAccessToken = await this.jwtService.signAsync({
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+    });
 
     /*
      * Step 6:
@@ -231,6 +232,7 @@ export class AuthService {
         {
           sub: user.id,
           email: user.email,
+          role: user.role,
           jti: randomUUID(),
         },
         {

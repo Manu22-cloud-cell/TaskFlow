@@ -14,7 +14,7 @@ describe('ProjectsService', () => {
       findMany: jest.fn(),
       findUnique: jest.fn(),
       update: jest.fn(),
-      delete: jest.fn(),
+      delete: jest.fn(),  
     },
   };
 
