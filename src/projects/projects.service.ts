@@ -2,6 +2,7 @@ import {
     Injectable,
     NotFoundException,
 } from '@nestjs/common';
+import { ProjectMemberRole } from '../generated/prisma/enums.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateProjectDto } from './dto/create-project.dto.js';
 import { UpdateProjectDto } from './dto/update-project.dto.js';
@@ -21,13 +22,25 @@ export class ProjectsService {
             throw new NotFoundException('Owner user not found');
         }
 
-        return this.prisma.project.create({
-            data: {
-                name: createProjectDto.name,
-                description: createProjectDto.description,
-                status: createProjectDto.status,
-                ownerId: createProjectDto.ownerId,
-            },
+        return this.prisma.$transaction(async (tx) => {
+            const project = await tx.project.create({
+                data: {
+                    name: createProjectDto.name,
+                    description: createProjectDto.description,
+                    status: createProjectDto.status,
+                    ownerId: createProjectDto.ownerId,
+                },
+            });
+
+            await tx.projectMember.create({
+                data: {
+                    projectId: project.id,
+                    userId: createProjectDto.ownerId,
+                    role: ProjectMemberRole.MANAGER,
+                },
+            });
+
+            return project;
         });
     }
 

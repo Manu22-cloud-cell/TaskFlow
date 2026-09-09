@@ -1,6 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { ProjectsService } from './projects.service.js';
+import { ProjectMemberRole } from '../generated/prisma/enums.js';
 
 describe('ProjectsService', () => {
   let service: ProjectsService;
@@ -9,13 +10,20 @@ describe('ProjectsService', () => {
     user: {
       findUnique: jest.fn(),
     },
+
     project: {
       create: jest.fn(),
       findMany: jest.fn(),
       findUnique: jest.fn(),
       update: jest.fn(),
-      delete: jest.fn(),  
+      delete: jest.fn(),
     },
+
+    projectMember: {
+      create: jest.fn(),
+    },
+
+    $transaction: jest.fn(),
   };
 
   beforeEach(() => {
@@ -25,7 +33,7 @@ describe('ProjectsService', () => {
   });
 
   describe('create', () => {
-    it('should create a project successfully', async () => {
+    it('should create a project and automatically add the owner as a project manager', async () => {
       const createProjectDto = {
         name: 'TaskFlow',
         description: 'Project management application',
@@ -47,7 +55,21 @@ describe('ProjectsService', () => {
       };
 
       mockPrisma.user.findUnique.mockResolvedValue(owner);
+
       mockPrisma.project.create.mockResolvedValue(createdProject);
+
+      mockPrisma.projectMember.create.mockResolvedValue({
+        id: 1,
+        projectId: createdProject.id,
+        userId: owner.id,
+        role: ProjectMemberRole.MANAGER,
+      });
+
+      mockPrisma.$transaction.mockImplementation(
+        async (callback: (tx: typeof mockPrisma) => Promise<unknown>) => {
+          return callback(mockPrisma);
+        },
+      );
 
       const result = await service.create(createProjectDto as any);
 
@@ -59,12 +81,22 @@ describe('ProjectsService', () => {
         },
       });
 
+      expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1);
+
       expect(mockPrisma.project.create).toHaveBeenCalledWith({
         data: {
           name: 'TaskFlow',
           description: 'Project management application',
           status: undefined,
           ownerId: 1,
+        },
+      });
+
+      expect(mockPrisma.projectMember.create).toHaveBeenCalledWith({
+        data: {
+          projectId: 1,
+          userId: 1,
+          role: ProjectMemberRole.MANAGER,
         },
       });
     });
@@ -78,11 +110,17 @@ describe('ProjectsService', () => {
 
       mockPrisma.user.findUnique.mockResolvedValue(null);
 
-      await expect(service.create(createProjectDto as any)).rejects.toThrow(
+      await expect(
+        service.create(createProjectDto as any),
+      ).rejects.toThrow(
         new NotFoundException('Owner user not found'),
       );
 
       expect(mockPrisma.project.create).not.toHaveBeenCalled();
+
+      expect(mockPrisma.projectMember.create).not.toHaveBeenCalled();
+
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
     });
   });
 
@@ -222,7 +260,9 @@ describe('ProjectsService', () => {
 
       await expect(
         service.update(999, updateProjectDto as any),
-      ).rejects.toThrow(new NotFoundException('Project not found'));
+      ).rejects.toThrow(
+        new NotFoundException('Project not found'),
+      );
 
       expect(mockPrisma.project.update).not.toHaveBeenCalled();
     });
