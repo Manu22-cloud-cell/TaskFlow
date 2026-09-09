@@ -4,6 +4,7 @@ import { UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { jest } from '@jest/globals';
 import * as bcrypt from 'bcrypt';
+import { createHash } from 'crypto';
 
 import { AuthService } from './auth.service.js';
 import { UsersService } from '../users/users.service.js';
@@ -35,7 +36,13 @@ describe('AuthService', () => {
 
       return undefined;
     }),
+
   };
+
+  const hashRefreshToken = (token: string) =>
+    createHash('sha256')
+      .update(token)
+      .digest('hex');
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -60,6 +67,7 @@ describe('AuthService', () => {
       }).compile();
 
     service = module.get<AuthService>(AuthService);
+
   });
 
   it('should be defined', () => {
@@ -70,7 +78,7 @@ describe('AuthService', () => {
     it('should create and return a user', async () => {
       const registerDto = {
         name: 'John Doe',
-        email: 'john@example.com',
+        email: '[john@example.com](mailto:john@example.com)',
         password: 'password123',
       };
 
@@ -95,11 +103,13 @@ describe('AuthService', () => {
 
       expect(result).toEqual(createdUser);
     });
+
+
   });
 
   describe('login', () => {
     const loginDto = {
-      email: 'john@example.com',
+      email: '[john@example.com](mailto:john@example.com)',
       password: 'password123',
     };
 
@@ -174,7 +184,7 @@ describe('AuthService', () => {
 
       const refreshTokenMatches =
         await bcrypt.compare(
-          'mock-refresh-token',
+          hashRefreshToken('mock-refresh-token'),
           refreshTokenHash,
         );
 
@@ -264,7 +274,7 @@ describe('AuthService', () => {
         email: 'john@example.com',
         password: 'hashed-password',
         refreshTokenHash: await bcrypt.hash(
-          refreshToken,
+          hashRefreshToken(refreshToken),
           10,
         ),
         refreshTokenExpiresAt: new Date(
@@ -346,7 +356,7 @@ describe('AuthService', () => {
 
       const newRefreshTokenMatches =
         await bcrypt.compare(
-          'new-refresh-token',
+          hashRefreshToken('new-refresh-token'),
           newRefreshTokenHash,
         );
 
@@ -459,7 +469,7 @@ describe('AuthService', () => {
         email: 'john@example.com',
         password: 'hashed-password',
         refreshTokenHash: await bcrypt.hash(
-          refreshToken,
+          hashRefreshToken(refreshToken),
           10,
         ),
         refreshTokenExpiresAt: new Date(
@@ -502,7 +512,7 @@ describe('AuthService', () => {
         email: 'john@example.com',
         password: 'hashed-password',
         refreshTokenHash: await bcrypt.hash(
-          storedRefreshToken,
+          hashRefreshToken(storedRefreshToken),
           10,
         ),
         refreshTokenExpiresAt: new Date(
@@ -538,4 +548,3 @@ describe('AuthService', () => {
     });
   });
 });
-

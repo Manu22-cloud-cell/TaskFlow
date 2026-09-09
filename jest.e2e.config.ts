@@ -20,8 +20,8 @@ const config: Config = {
     ],
   },
 
-  testMatch: ['<rootDir>/src/**/*.spec.ts'],
-  
+  testMatch: ['<rootDir>/test/**/*.e2e-spec.ts'],
+
   clearMocks: true,
 };
 

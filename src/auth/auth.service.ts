@@ -5,7 +5,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { randomUUID } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 
 import { UsersService } from '../users/users.service.js';
 import { RegisterDto } from './dto/register.dto.js';
@@ -18,6 +18,12 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) { }
+
+  private hashRefreshToken(token: string): string {
+    return createHash('sha256')
+      .update(token)
+      .digest('hex');
+  }
 
   async register(registerDto: RegisterDto) {
     return this.usersService.create(registerDto);
@@ -91,7 +97,10 @@ export class AuthService {
       );
 
     const refreshTokenHash =
-      await bcrypt.hash(refreshToken, 10);
+      await bcrypt.hash(
+        this.hashRefreshToken(refreshToken),
+        10,
+      );
 
     const refreshTokenExpiresAt =
       new Date(
@@ -190,7 +199,7 @@ export class AuthService {
      */
     const refreshTokenMatches =
       await bcrypt.compare(
-        refreshToken,
+        this.hashRefreshToken(refreshToken),
         user.refreshTokenHash,
       );
 
@@ -249,7 +258,7 @@ export class AuthService {
      */
     const newRefreshTokenHash =
       await bcrypt.hash(
-        newRefreshToken,
+        this.hashRefreshToken(newRefreshToken),
         10,
       );
 
