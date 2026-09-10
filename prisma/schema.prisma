@@ -91,9 +91,12 @@ model Task {
   dueDate      DateTime?
   projectId    Int
   assignedToId Int?
+  position     Int          @default(0)
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
   project  Project @relation(fields: [projectId], references: [id])
   assignee User?   @relation("TaskAssignee", fields: [assignedToId], references: [id])
+
+  @@index([projectId, status, position])
 }

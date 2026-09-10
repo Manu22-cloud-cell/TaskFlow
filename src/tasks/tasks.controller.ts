@@ -12,6 +12,7 @@ import {
 import { Request } from 'express';
 import { CreateTaskDto } from './dto/create-task.dto.js';
 import { UpdateTaskDto } from './dto/update-task.dto.js';
+import { MoveTaskDto } from './dto/move-task.dto.js';
 import { TasksService } from './tasks.service.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { AuthenticatedUser } from '../projects/project-access.service.js';
@@ -42,6 +43,20 @@ export class TasksController {
     @Req() request: Request & { user: AuthenticatedUser },
   ) {
     return this.tasksService.findOne(Number(id), request.user);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id/move')
+  async move(
+    @Param('id') id: string,
+    @Body() moveTaskDto: MoveTaskDto,
+    @Req() request: Request & { user: AuthenticatedUser },
+  ) {
+    return this.tasksService.move(
+      Number(id),
+      moveTaskDto,
+      request.user,
+    );
   }
 
   @UseGuards(JwtAuthGuard)
