@@ -13,6 +13,7 @@ import { Request } from 'express';
 import { CreateTaskDto } from './dto/create-task.dto.js';
 import { UpdateTaskDto } from './dto/update-task.dto.js';
 import { MoveTaskDto } from './dto/move-task.dto.js';
+import { UpdateTaskStatusDto } from './dto/update-task-status.dto.js';
 import { TasksService } from './tasks.service.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { AuthenticatedUser } from '../projects/project-access.service.js';
@@ -55,6 +56,20 @@ export class TasksController {
     return this.tasksService.move(
       Number(id),
       moveTaskDto,
+      request.user,
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id/status')
+  async updateStatus(
+    @Param('id') id: string,
+    @Body() updateTaskStatusDto: UpdateTaskStatusDto,
+    @Req() request: Request & { user: AuthenticatedUser },
+  ) {
+    return this.tasksService.updateStatus(
+      Number(id),
+      updateTaskStatusDto,
       request.user,
     );
   }

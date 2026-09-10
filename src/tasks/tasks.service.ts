@@ -13,6 +13,7 @@ import { CreateTaskDto } from './dto/create-task.dto.js';
 import { UpdateTaskDto } from './dto/update-task.dto.js';
 import { ListProjectTasksDto } from './dto/list-project-tasks.dto.js';
 import { MoveTaskDto } from './dto/move-task.dto.js';
+import { UpdateTaskStatusDto } from './dto/update-task-status.dto.js';
 
 @Injectable()
 export class TasksService {
@@ -277,6 +278,41 @@ export class TasksService {
             requester,
         );
 
+        return this.moveTask(id, moveTaskDto);
+    }
+
+    async updateStatus(
+        id: number,
+        updateTaskStatusDto: UpdateTaskStatusDto,
+        requester: AuthenticatedUser,
+    ) {
+        const task = await this.prisma.task.findUnique({
+            where: { id },
+        });
+
+        if (!task) {
+            throw new NotFoundException('Task not found');
+        }
+
+        await this.projectAccess.assertCanViewProject(
+            task.projectId,
+            requester,
+        );
+
+        if (task.assignedToId !== requester.sub) {
+            await this.projectAccess.assertCanManageProject(
+                task.projectId,
+                requester,
+            );
+        }
+
+        return this.moveTask(id, updateTaskStatusDto);
+    }
+
+    private async moveTask(
+        id: number,
+        moveTaskDto: MoveTaskDto | UpdateTaskStatusDto,
+    ) {
         return this.prisma.$transaction(async (tx) => {
             const task = await tx.task.findUnique({ where: { id } });
 
@@ -291,10 +327,13 @@ export class TasksService {
                         status: task.status,
                     },
                 });
-                const position = Math.min(
-                    moveTaskDto.position,
-                    Math.max(taskCount - 1, 0),
-                );
+                const position =
+                    'position' in moveTaskDto
+                        ? Math.min(
+                            moveTaskDto.position,
+                            Math.max(taskCount - 1, 0),
+                        )
+                        : task.position;
 
                 if (position > task.position) {
                     await tx.task.updateMany({
@@ -343,10 +382,13 @@ export class TasksService {
                     status: moveTaskDto.status,
                 },
             });
-            const position = Math.min(
-                moveTaskDto.position,
-                targetColumnCount,
-            );
+            const position =
+                'position' in moveTaskDto
+                    ? Math.min(
+                        moveTaskDto.position,
+                        targetColumnCount,
+                    )
+                    : targetColumnCount;
 
             await tx.task.updateMany({
                 where: {

@@ -16,6 +16,7 @@ describe('Task board (e2e)', () => {
   let memberId: number;
   let projectId: number;
   let firstTaskId: number;
+  let memberTaskId: number;
 
   const suffix = Date.now();
   const admin = {
@@ -124,9 +125,20 @@ describe('Task board (e2e)', () => {
       status: 'IN_PROGRESS',
       position: 0,
     });
+
+    const memberTaskResponse = await request(app.getHttpServer())
+      .post('/tasks')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        title: 'Member board task',
+        projectId,
+        assignedToId: memberId,
+      })
+      .expect(201);
+    memberTaskId = memberTaskResponse.body.id;
   });
 
-  it('allows a project member to read the board', async () => {
+  it('allows a project member to read the board and transition their assigned task', async () => {
     const response = await request(app.getHttpServer())
       .get(`/projects/${projectId}/tasks`)
       .set('Authorization', `Bearer ${memberToken}`)
@@ -135,5 +147,24 @@ describe('Task board (e2e)', () => {
     expect(response.body.data).toEqual(expect.arrayContaining([
       expect.objectContaining({ id: firstTaskId }),
     ]));
+
+    await request(app.getHttpServer())
+      .patch(`/tasks/${memberTaskId}/status`)
+      .set('Authorization', `Bearer ${memberToken}`)
+      .send({ status: 'COMPLETED' })
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({
+          id: memberTaskId,
+          status: 'COMPLETED',
+          position: 0,
+        });
+      });
+
+    await request(app.getHttpServer())
+      .patch(`/tasks/${firstTaskId}/status`)
+      .set('Authorization', `Bearer ${memberToken}`)
+      .send({ status: 'COMPLETED' })
+      .expect(403);
   });
 });

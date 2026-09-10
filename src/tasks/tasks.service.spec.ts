@@ -128,4 +128,30 @@ describe('TasksService', () => {
       data: { status: 'IN_PROGRESS', position: 2 },
     });
   });
+
+  it('allows an assigned member to transition only their own task', async () => {
+    const task = {
+      id: 10,
+      projectId: 4,
+      assignedToId: member.sub,
+      status: 'TODO',
+      position: 0,
+    };
+    mockPrisma.task.findUnique.mockResolvedValue(task);
+    mockPrisma.task.count.mockResolvedValue(0);
+    mockPrisma.task.update.mockResolvedValue({
+      ...task,
+      status: 'COMPLETED',
+      position: 0,
+    });
+
+    await service.updateStatus(10, { status: 'COMPLETED' } as any, member);
+
+    expect(mockProjectAccess.assertCanViewProject).toHaveBeenCalledWith(4, member);
+    expect(mockProjectAccess.assertCanManageProject).not.toHaveBeenCalled();
+    expect(mockPrisma.task.update).toHaveBeenCalledWith({
+      where: { id: 10 },
+      data: { status: 'COMPLETED', position: 0 },
+    });
+  });
 });
