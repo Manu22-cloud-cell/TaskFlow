@@ -3,8 +3,7 @@ import {
     NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { UserRole } from '../generated/prisma/enums.js';
-import { TaskStatus } from '../generated/prisma/enums.js';
+import { TaskActivityType, TaskStatus, UserRole } from '../generated/prisma/enums.js';
 import {
     AuthenticatedUser,
     ProjectAccessService,
@@ -50,7 +49,7 @@ export class TasksService {
 
         const status = createTaskDto.status ?? TaskStatus.TODO;
 
-        return this.prisma.$transaction(async (tx) => {
+        const task = await this.prisma.$transaction(async (tx) => {
             const position = await tx.task.count({
                 where: {
                     projectId: createTaskDto.projectId,
@@ -73,6 +72,8 @@ export class TasksService {
                 },
             });
         });
+        await this.prisma.taskActivity.create({ data: { taskId: task.id, actorId: requester.sub, type: TaskActivityType.TASK_CREATED } });
+        return task;
     }
 
     async findByProject(
@@ -243,7 +244,7 @@ export class TasksService {
             );
         }
 
-        return this.prisma.task.update({
+        const updatedTask = await this.prisma.task.update({
             where: {
                 id,
             },
@@ -258,6 +259,13 @@ export class TasksService {
                 assignedToId: updateTaskDto.assignedToId,
             },
         });
+        const events = [
+            updateTaskDto.assignedToId !== undefined && existingTask.assignedToId !== updatedTask.assignedToId && { type: TaskActivityType.ASSIGNEE_CHANGED, metadata: { from: existingTask.assignedToId, to: updatedTask.assignedToId } },
+            updateTaskDto.priority !== undefined && existingTask.priority !== updatedTask.priority && { type: TaskActivityType.PRIORITY_CHANGED, metadata: { from: existingTask.priority, to: updatedTask.priority } },
+            updateTaskDto.dueDate !== undefined && existingTask.dueDate?.toISOString() !== updatedTask.dueDate?.toISOString() && { type: TaskActivityType.DUE_DATE_CHANGED, metadata: { from: existingTask.dueDate, to: updatedTask.dueDate } },
+        ].filter(Boolean) as { type: TaskActivityType; metadata: object }[];
+        if (events.length) await this.prisma.taskActivity.createMany({ data: events.map(event => ({ taskId: id, actorId: requester.sub, ...event })) });
+        return updatedTask;
     }
 
     async move(
@@ -278,7 +286,9 @@ export class TasksService {
             requester,
         );
 
-        return this.moveTask(id, moveTaskDto);
+        const task = await this.moveTask(id, moveTaskDto);
+        await this.prisma.taskActivity.create({ data: { taskId: id, actorId: requester.sub, type: TaskActivityType.STATUS_CHANGED, metadata: { from: existingTask.status, to: task.status } } });
+        return task;
     }
 
     async updateStatus(
@@ -306,7 +316,11 @@ export class TasksService {
             );
         }
 
-        return this.moveTask(id, updateTaskStatusDto);
+        const updatedTask = await this.moveTask(id, updateTaskStatusDto);
+        if (task.status !== updatedTask.status) {
+            await this.prisma.taskActivity.create({ data: { taskId: id, actorId: requester.sub, type: TaskActivityType.STATUS_CHANGED, metadata: { from: task.status, to: updatedTask.status } } });
+        }
+        return updatedTask;
     }
 
     private async moveTask(

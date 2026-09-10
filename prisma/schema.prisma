@@ -38,6 +38,15 @@ enum ProjectMemberRole {
   MEMBER
 }
 
+enum TaskActivityType {
+  TASK_CREATED
+  STATUS_CHANGED
+  ASSIGNEE_CHANGED
+  PRIORITY_CHANGED
+  DUE_DATE_CHANGED
+  COMMENT_ADDED
+}
+
 model User {
   id                    Int       @id @default(autoincrement())
   name                  String
@@ -52,6 +61,8 @@ model User {
   ownedProjects      Project[]       @relation("ProjectOwner")
   assignedTasks      Task[]          @relation("TaskAssignee")
   projectMemberships ProjectMember[]
+  comments           Comment[]
+  taskActivities     TaskActivity[]
 }
 
 model Project {
@@ -97,6 +108,36 @@ model Task {
 
   project  Project @relation(fields: [projectId], references: [id])
   assignee User?   @relation("TaskAssignee", fields: [assignedToId], references: [id])
+  comments Comment[]
+  activities TaskActivity[]
 
   @@index([projectId, status, position])
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  content   String
+  taskId    Int
+  authorId  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  task   Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([taskId, createdAt])
+}
+
+model TaskActivity {
+  id        Int              @id @default(autoincrement())
+  taskId    Int
+  actorId   Int
+  type      TaskActivityType
+  metadata  Json?
+  createdAt DateTime         @default(now())
+
+  task  Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  actor User @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([taskId, createdAt])
 }

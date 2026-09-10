@@ -8,6 +8,7 @@ import { ProjectsModule } from './projects/projects.module.js';
 import { TasksModule } from './tasks/tasks.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { ProjectMembersModule } from './project-members/project-members.module.js';
+import { CommentsModule } from './comments/comments.module.js';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { ProjectMembersModule } from './project-members/project-members.module.j
     TasksModule,
     AuthModule,
     ProjectMembersModule,
+    CommentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -8,6 +8,7 @@ describe('TasksService', () => {
   const member = { sub: 3, email: 'member@example.com', role: UserRole.MEMBER };
   const mockPrisma = {
     user: { findUnique: jest.fn() },
+    taskActivity: { create: jest.fn(), createMany: jest.fn() },
     task: {
       create: jest.fn(), findMany: jest.fn(), findUnique: jest.fn(),
       update: jest.fn(), delete: jest.fn(), count: jest.fn(), updateMany: jest.fn(),
