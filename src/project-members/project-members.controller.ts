@@ -17,7 +17,7 @@ import { ProjectMembersService } from './project-members.service.js';
 import { AddProjectMemberDto } from './dto/add-project-member.dto.js';
 import { UpdateProjectMemberDto } from './dto/update-project-member.dto.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import { UserRole } from '../generated/prisma/browser.js';
+import { AuthenticatedUser } from '../projects/project-access.service.js';
 
 @Controller('projects/:projectId/members')
 @UseGuards(JwtAuthGuard)
@@ -29,18 +29,24 @@ export class ProjectMembersController {
     @Get()
     async findMembers(
         @Param('projectId', ParseIntPipe) projectId: number,
+        @Req() request: Request & { user: AuthenticatedUser },
     ) {
-        return this.projectMembersService.findMembers(projectId);
+        return this.projectMembersService.findMembers(
+            projectId,
+            request.user,
+        );
     }
 
     @Post()
     async addMember(
         @Param('projectId', ParseIntPipe) projectId: number,
         @Body() addProjectMemberDto: AddProjectMemberDto,
+        @Req() request: Request & { user: AuthenticatedUser },
     ) {
         return this.projectMembersService.addMember(
             projectId,
             addProjectMemberDto,
+            request.user,
         );
     }
 
@@ -51,22 +57,14 @@ export class ProjectMembersController {
         @Body() updateProjectMemberDto: UpdateProjectMemberDto,
         @Req()
         request: Request & {
-            user: {
-                sub: number;
-                email: string;
-                role: UserRole;
-            };
+            user: AuthenticatedUser;
         },
     ) {
-        const requesterId = request.user.sub;
-        const requesterRole = request.user.role;
-
         return this.projectMembersService.updateMember(
             projectId,
             userId,
             updateProjectMemberDto,
-            requesterId,
-            requesterRole,
+            request.user,
         );
     }
 
@@ -76,21 +74,13 @@ export class ProjectMembersController {
         @Param('userId', ParseIntPipe) userId: number,
         @Req()
         request: Request & {
-            user: {
-                sub: number;
-                email: string;
-                role: UserRole;
-            };
+            user: AuthenticatedUser;
         },
     ) {
-        const requesterId = request.user.sub;
-        const requesterRole = request.user.role;
-
         return this.projectMembersService.removeMember(
             projectId,
             userId,
-            requesterId,
-            requesterRole,
+            request.user,
         );
     }
 }

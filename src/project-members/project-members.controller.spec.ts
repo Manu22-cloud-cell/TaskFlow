@@ -47,6 +47,9 @@ describe('ProjectMembersController', () => {
   describe('findMembers', () => {
     it('should call ProjectMembersService.findMembers with projectId', async () => {
       const projectId = 1;
+      const request = {
+        user: { sub: 10, email: 'member@example.com', role: 'MEMBER' },
+      };
 
       const expectedResult = [
         {
@@ -77,11 +80,11 @@ describe('ProjectMembersController', () => {
         expectedResult,
       );
 
-      const result = await controller.findMembers(projectId);
+      const result = await controller.findMembers(projectId, request as any);
 
       expect(
         mockProjectMembersService.findMembers,
-      ).toHaveBeenCalledWith(projectId);
+      ).toHaveBeenCalledWith(projectId, request.user);
 
       expect(result).toEqual(expectedResult);
     });
@@ -93,6 +96,9 @@ describe('ProjectMembersController', () => {
 
       const addProjectMemberDto = {
         userId: 2,
+      };
+      const request = {
+        user: { sub: 10, email: 'manager@example.com', role: 'MANAGER' },
       };
 
       const expectedResult = {
@@ -109,11 +115,16 @@ describe('ProjectMembersController', () => {
       const result = await controller.addMember(
         projectId,
         addProjectMemberDto,
+        request as any,
       );
 
       expect(
         mockProjectMembersService.addMember,
-      ).toHaveBeenCalledWith(projectId, addProjectMemberDto);
+      ).toHaveBeenCalledWith(
+        projectId,
+        addProjectMemberDto,
+        request.user,
+      );
 
       expect(result).toEqual(expectedResult);
     });
@@ -160,8 +171,7 @@ describe('ProjectMembersController', () => {
         projectId,
         userId,
         updateProjectMemberDto,
-        10,
-        'MEMBER',
+        request.user,
       );
 
       expect(result).toEqual(expectedResult);
@@ -200,8 +210,7 @@ describe('ProjectMembersController', () => {
       ).toHaveBeenCalledWith(
         projectId,
         userId,
-        10,
-        'MEMBER',
+        request.user,
       );
 
       expect(result).toEqual(expectedResult);

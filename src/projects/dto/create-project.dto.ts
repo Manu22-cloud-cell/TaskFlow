@@ -1,6 +1,7 @@
 import {
   IsEnum,
   IsInt,
+  Min,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -20,6 +21,8 @@ export class CreateProjectDto {
   @IsEnum(ProjectStatus)
   status?: ProjectStatus;
 
+  @IsOptional()
   @IsInt()
-  ownerId: number;
+  @Min(1)
+  ownerId?: number;
 }

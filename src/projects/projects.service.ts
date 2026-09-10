@@ -1,20 +1,49 @@
 import {
+    ForbiddenException,
     Injectable,
     NotFoundException,
 } from '@nestjs/common';
-import { ProjectMemberRole } from '../generated/prisma/enums.js';
+import {
+    ProjectMemberRole,
+    UserRole,
+} from '../generated/prisma/enums.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateProjectDto } from './dto/create-project.dto.js';
 import { UpdateProjectDto } from './dto/update-project.dto.js';
+import {
+    AuthenticatedUser,
+    ProjectAccessService,
+} from './project-access.service.js';
 
 @Injectable()
 export class ProjectsService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly projectAccess: ProjectAccessService,
+    ) { }
 
-    async create(createProjectDto: CreateProjectDto) {
+    async create(
+        createProjectDto: CreateProjectDto,
+        requester: AuthenticatedUser,
+    ) {
+        if (
+            requester.role === UserRole.MANAGER &&
+            createProjectDto.ownerId !== undefined &&
+            createProjectDto.ownerId !== requester.sub
+        ) {
+            throw new ForbiddenException(
+                'Managers can only create projects for themselves',
+            );
+        }
+
+        const ownerId =
+            requester.role === UserRole.ADMIN
+                ? (createProjectDto.ownerId ?? requester.sub)
+                : requester.sub;
+
         const owner = await this.prisma.user.findUnique({
             where: {
-                id: createProjectDto.ownerId,
+                id: ownerId,
             },
         });
 
@@ -28,14 +57,14 @@ export class ProjectsService {
                     name: createProjectDto.name,
                     description: createProjectDto.description,
                     status: createProjectDto.status,
-                    ownerId: createProjectDto.ownerId,
+                    ownerId,
                 },
             });
 
             await tx.projectMember.create({
                 data: {
                     projectId: project.id,
-                    userId: createProjectDto.ownerId,
+                    userId: ownerId,
                     role: ProjectMemberRole.MANAGER,
                 },
             });
@@ -44,8 +73,21 @@ export class ProjectsService {
         });
     }
 
-    async findAll() {
+    async findAll(requester: AuthenticatedUser) {
         return this.prisma.project.findMany({
+            where:
+                requester.role === UserRole.ADMIN
+                    ? undefined
+                    : {
+                        OR: [
+                            { ownerId: requester.sub },
+                            {
+                                members: {
+                                    some: { userId: requester.sub },
+                                },
+                            },
+                        ],
+                    },
             include: {
                 owner: {
                     select: {
@@ -61,7 +103,9 @@ export class ProjectsService {
         });
     }
 
-    async findOne(id: number) {
+    async findOne(id: number, requester: AuthenticatedUser) {
+        await this.projectAccess.assertCanViewProject(id, requester);
+
         const project = await this.prisma.project.findUnique({
             where: {
                 id,
@@ -84,16 +128,12 @@ export class ProjectsService {
         return project;
     }
 
-    async update(id: number, updateProjectDto: UpdateProjectDto) {
-        const existingProject = await this.prisma.project.findUnique({
-            where: {
-                id,
-            },
-        });
-
-        if (!existingProject) {
-            throw new NotFoundException('Project not found');
-        }
+    async update(
+        id: number,
+        updateProjectDto: UpdateProjectDto,
+        requester: AuthenticatedUser,
+    ) {
+        await this.projectAccess.assertCanManageProject(id, requester);
 
         return this.prisma.project.update({
             where: {
@@ -103,16 +143,8 @@ export class ProjectsService {
         });
     }
 
-    async remove(id: number) {
-        const existingProject = await this.prisma.project.findUnique({
-            where: {
-                id,
-            },
-        });
-
-        if (!existingProject) {
-            throw new NotFoundException('Project not found');
-        }
+    async remove(id: number, requester: AuthenticatedUser) {
+        await this.projectAccess.assertCanDeleteProject(id, requester);
 
         await this.prisma.project.delete({
             where: {

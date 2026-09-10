@@ -3,23 +3,29 @@ import {
     NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { UserRole } from '../generated/prisma/enums.js';
+import {
+    AuthenticatedUser,
+    ProjectAccessService,
+} from '../projects/project-access.service.js';
 import { CreateTaskDto } from './dto/create-task.dto.js';
 import { UpdateTaskDto } from './dto/update-task.dto.js';
 
 @Injectable()
 export class TasksService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly projectAccess: ProjectAccessService,
+    ) { }
 
-    async create(createTaskDto: CreateTaskDto) {
-        const project = await this.prisma.project.findUnique({
-            where: {
-                id: createTaskDto.projectId,
-            },
-        });
-
-        if (!project) {
-            throw new NotFoundException('Project not found');
-        }
+    async create(
+        createTaskDto: CreateTaskDto,
+        requester: AuthenticatedUser,
+    ) {
+        await this.projectAccess.assertCanManageProject(
+            createTaskDto.projectId,
+            requester,
+        );
 
         if (createTaskDto.assignedToId !== undefined) {
             const user = await this.prisma.user.findUnique({
@@ -31,6 +37,11 @@ export class TasksService {
             if (!user) {
                 throw new NotFoundException('Assigned user not found');
             }
+
+            await this.projectAccess.assertProjectMember(
+                createTaskDto.projectId,
+                createTaskDto.assignedToId,
+            );
         }
 
         return this.prisma.task.create({
@@ -48,8 +59,23 @@ export class TasksService {
         });
     }
 
-    async findAll() {
+    async findAll(requester: AuthenticatedUser) {
         return this.prisma.task.findMany({
+            where:
+                requester.role === UserRole.ADMIN
+                    ? undefined
+                    : {
+                        project: {
+                            OR: [
+                                { ownerId: requester.sub },
+                                {
+                                    members: {
+                                        some: { userId: requester.sub },
+                                    },
+                                },
+                            ],
+                        },
+                    },
             include: {
                 project: {
                     select: {
@@ -71,7 +97,7 @@ export class TasksService {
         });
     }
 
-    async findOne(id: number) {
+    async findOne(id: number, requester: AuthenticatedUser) {
         const task = await this.prisma.task.findUnique({
             where: {
                 id,
@@ -97,10 +123,19 @@ export class TasksService {
             throw new NotFoundException('Task not found');
         }
 
+        await this.projectAccess.assertCanViewProject(
+            task.projectId,
+            requester,
+        );
+
         return task;
     }
 
-    async update(id: number, updateTaskDto: UpdateTaskDto) {
+    async update(
+        id: number,
+        updateTaskDto: UpdateTaskDto,
+        requester: AuthenticatedUser,
+    ) {
         const existingTask = await this.prisma.task.findUnique({
             where: {
                 id,
@@ -110,6 +145,11 @@ export class TasksService {
         if (!existingTask) {
             throw new NotFoundException('Task not found');
         }
+
+        await this.projectAccess.assertCanManageProject(
+            existingTask.projectId,
+            requester,
+        );
 
         if (updateTaskDto.assignedToId !== undefined) {
             const user = await this.prisma.user.findUnique({
@@ -121,6 +161,11 @@ export class TasksService {
             if (!user) {
                 throw new NotFoundException('Assigned user not found');
             }
+
+            await this.projectAccess.assertProjectMember(
+                existingTask.projectId,
+                updateTaskDto.assignedToId,
+            );
         }
 
         return this.prisma.task.update({
@@ -140,7 +185,7 @@ export class TasksService {
         });
     }
 
-    async remove(id: number) {
+    async remove(id: number, requester: AuthenticatedUser) {
         const existingTask = await this.prisma.task.findUnique({
             where: {
                 id,
@@ -150,6 +195,11 @@ export class TasksService {
         if (!existingTask) {
             throw new NotFoundException('Task not found');
         }
+
+        await this.projectAccess.assertCanManageProject(
+            existingTask.projectId,
+            requester,
+        );
 
         await this.prisma.task.delete({
             where: {
