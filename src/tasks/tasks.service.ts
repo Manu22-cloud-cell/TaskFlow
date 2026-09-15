@@ -227,7 +227,10 @@ export class TasksService {
             requester,
         );
 
-        if (updateTaskDto.assignedToId !== undefined) {
+        if (
+            updateTaskDto.assignedToId !== undefined &&
+            updateTaskDto.assignedToId !== null
+        ) {
             const user = await this.prisma.user.findUnique({
                 where: {
                     id: updateTaskDto.assignedToId,
@@ -253,9 +256,12 @@ export class TasksService {
                 description: updateTaskDto.description,
                 status: updateTaskDto.status,
                 priority: updateTaskDto.priority,
-                dueDate: updateTaskDto.dueDate
-                    ? new Date(updateTaskDto.dueDate)
-                    : undefined,
+                dueDate:
+                    updateTaskDto.dueDate === undefined
+                        ? undefined
+                        : updateTaskDto.dueDate
+                          ? new Date(updateTaskDto.dueDate)
+                          : null,
                 assignedToId: updateTaskDto.assignedToId,
             },
         });

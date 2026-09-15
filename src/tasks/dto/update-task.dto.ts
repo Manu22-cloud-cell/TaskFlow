@@ -6,10 +6,7 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import {
-  TaskPriority,
-  TaskStatus,
-} from '../../generated/prisma/enums.js';
+import { TaskPriority, TaskStatus } from '../../generated/prisma/enums.js';
 
 export class UpdateTaskDto {
   @IsOptional()
@@ -19,7 +16,7 @@ export class UpdateTaskDto {
 
   @IsOptional()
   @IsString()
-  description?: string;
+  description?: string | null;
 
   @IsOptional()
   @IsEnum(TaskStatus)
@@ -31,9 +28,9 @@ export class UpdateTaskDto {
 
   @IsOptional()
   @IsDateString()
-  dueDate?: string;
+  dueDate?: string | null;
 
   @IsOptional()
   @IsInt()
-  assignedToId?: number;
+  assignedToId?: number | null;
 }

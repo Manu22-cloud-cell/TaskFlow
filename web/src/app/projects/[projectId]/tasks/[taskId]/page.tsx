@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { CommentsSection } from './comments-section';
+import { TaskActions } from './task-actions';
 import { TaskFlowApiError, taskflowFetch } from '@/lib/taskflow-api';
 import type {
   Comment,
@@ -74,6 +75,9 @@ export default async function TaskDetailsPage(
             </p>
 
             <TaskDetails task={task} />
+            {canManageProject && (
+              <TaskActions members={projectMembers} task={task} />
+            )}
           </section>
 
           <ActivityTimeline activity={activity} />
