@@ -34,7 +34,10 @@ Install dependencies and create a local environment file:
 
 ```bash
 npm install
+cp .env.example .env
 ```
+
+Update the copied `.env` file with your local PostgreSQL credentials and JWT secrets:
 
 ```env
 DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/taskflow?schema=public"
@@ -45,11 +48,11 @@ JWT_REFRESH_EXPIRES_IN="7d"
 PORT=3000
 ```
 
-Apply migrations, generate Prisma types, and start the API:
+Generate Prisma types, apply migrations, and start the API:
 
 ```bash
-npx prisma migrate deploy
 npx prisma generate
+npx prisma migrate deploy
 npm run start:dev
 ```
 
