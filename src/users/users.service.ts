@@ -193,4 +193,14 @@ export class UsersService {
             },
         });
     }
+
+    async clearRefreshToken(id: number) {
+        await this.prisma.user.update({
+            where: { id },
+            data: {
+                refreshTokenHash: null,
+                refreshTokenExpiresAt: null,
+            },
+        });
+    }
 }

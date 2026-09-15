@@ -296,6 +296,27 @@ export class AuthService {
     };
   }
 
+  async me(userId: number) {
+    const user = await this.usersService.findByIdForAuth(userId);
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    };
+  }
+
+  async logout(userId: number) {
+    await this.usersService.clearRefreshToken(userId);
+
+    return { message: 'Logged out successfully' };
+  }
+
   private getRefreshTokenExpiryMs(
     expiresIn: string,
   ): number {
