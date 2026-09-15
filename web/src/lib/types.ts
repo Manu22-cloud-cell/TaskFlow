@@ -1,5 +1,6 @@
 export type UserRole = 'ADMIN' | 'MANAGER' | 'MEMBER';
 export type User = { id: number; name: string; email: string; role: UserRole };
+export type UserSummary = Pick<User, 'id' | 'name' | 'email'>;
 export type ProjectStatus = 'PLANNING' | 'ACTIVE' | 'COMPLETED' | 'ARCHIVED';
 export type Project = {
   id: number;
@@ -32,4 +33,38 @@ export type Task = {
 export type PaginatedTasks = {
   data: Task[];
   meta: { page: number; limit: number; total: number; totalPages: number };
+};
+
+export type ProjectMember = {
+  id: number;
+  role: 'MANAGER' | 'MEMBER';
+  user: Pick<User, 'id' | 'name' | 'email'>;
+};
+
+export type Comment = {
+  id: number;
+  content: string;
+  taskId: number;
+  authorId: number;
+  createdAt: string;
+  updatedAt: string;
+  author: Pick<User, 'id' | 'name' | 'email'>;
+};
+
+export type TaskActivityType =
+  | 'TASK_CREATED'
+  | 'STATUS_CHANGED'
+  | 'ASSIGNEE_CHANGED'
+  | 'PRIORITY_CHANGED'
+  | 'DUE_DATE_CHANGED'
+  | 'COMMENT_ADDED';
+
+export type TaskActivity = {
+  id: number;
+  taskId: number;
+  actorId: number;
+  type: TaskActivityType;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+  actor: Pick<User, 'id' | 'name' | 'email'>;
 };

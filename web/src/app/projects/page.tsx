@@ -1,7 +1,10 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+
+import { CreateProjectForm } from './create-project-form';
 import { TaskFlowApiError, taskflowFetch } from '@/lib/taskflow-api';
-import type { Project } from '@/lib/types';
+import type { Project, User, UserSummary } from '@/lib/types';
+
 const labels: Record<Project['status'], string> = {
   PLANNING: 'Planning',
   ACTIVE: 'Active',
@@ -10,8 +13,18 @@ const labels: Record<Project['status'], string> = {
 };
 export default async function ProjectsPage() {
   let projects: Project[];
+  let currentUser: User;
+  let owners: UserSummary[] = [];
+
   try {
-    projects = await taskflowFetch<Project[]>('/projects');
+    [projects, currentUser] = await Promise.all([
+      taskflowFetch<Project[]>('/projects'),
+      taskflowFetch<User>('/auth/me'),
+    ]);
+
+    if (currentUser.role === 'ADMIN') {
+      owners = await taskflowFetch<UserSummary[]>('/users');
+    }
   } catch (error) {
     if (error instanceof TaskFlowApiError && error.status === 401)
       redirect('/login');
@@ -20,12 +33,19 @@ export default async function ProjectsPage() {
   return (
     <main className="min-h-screen bg-slate-100 p-6 sm:p-10">
       <section className="mx-auto max-w-6xl">
-        <div className="mb-8">
-          <p className="text-sm font-medium text-indigo-600">TaskFlow</p>
-          <h1 className="mt-1 text-3xl font-semibold text-slate-900">
-            Projects
-          </h1>
-          <p className="mt-2 text-slate-600">Projects you own or belong to.</p>
+        <div className="mb-8 flex items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium text-indigo-600">TaskFlow</p>
+            <h1 className="mt-1 text-3xl font-semibold text-slate-900">
+              Projects
+            </h1>
+            <p className="mt-2 text-slate-600">
+              Projects you own or belong to.
+            </p>
+          </div>
+          {currentUser.role !== 'MEMBER' && (
+            <CreateProjectForm currentUser={currentUser} owners={owners} />
+          )}
         </div>
         {projects.length === 0 ? (
           <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-600">

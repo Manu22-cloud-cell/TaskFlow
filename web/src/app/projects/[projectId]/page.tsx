@@ -1,15 +1,17 @@
 import { notFound, redirect } from 'next/navigation';
 
-import { TaskCard } from './task-card';
+import { CreateTaskForm } from './create-task-form';
+import { ProjectMembersPanel } from './project-members-panel';
+import { TaskBoard } from './task-board';
 import { TaskFlowApiError, taskflowFetch } from '@/lib/taskflow-api';
-import type { PaginatedTasks, Project, Task, TaskStatus } from '@/lib/types';
-
-const columns: { status: TaskStatus; title: string }[] = [
-  { status: 'TODO', title: 'To do' },
-  { status: 'IN_PROGRESS', title: 'In progress' },
-  { status: 'COMPLETED', title: 'Completed' },
-  { status: 'CANCELLED', title: 'Cancelled' },
-];
+import type {
+  PaginatedTasks,
+  Project,
+  ProjectMember,
+  Task,
+  User,
+  UserSummary,
+} from '@/lib/types';
 
 export default async function ProjectBoardPage(
   context: PageProps<'/projects/[projectId]'>,
@@ -17,16 +19,28 @@ export default async function ProjectBoardPage(
   const { projectId } = await context.params;
   let project: Project;
   let tasks: Task[];
+  let currentUser: User;
+  let projectMembers: ProjectMember[];
+  let availableUsers: UserSummary[] = [];
 
   try {
-    const [projectResponse, tasksResponse] = await Promise.all([
-      taskflowFetch<Project>(`/projects/${projectId}`),
-      taskflowFetch<PaginatedTasks>(
-        `/projects/${projectId}/tasks?page=1&limit=100`,
-      ),
-    ]);
+    const [projectResponse, tasksResponse, userResponse, membersResponse] =
+      await Promise.all([
+        taskflowFetch<Project>(`/projects/${projectId}`),
+        taskflowFetch<PaginatedTasks>(
+          `/projects/${projectId}/tasks?page=1&limit=100`,
+        ),
+        taskflowFetch<User>('/auth/me'),
+        taskflowFetch<ProjectMember[]>(`/projects/${projectId}/members`),
+      ]);
     project = projectResponse;
     tasks = tasksResponse.data;
+    currentUser = userResponse;
+    projectMembers = membersResponse;
+
+    if (currentUser.role !== 'MEMBER') {
+      availableUsers = await taskflowFetch<UserSummary[]>('/users');
+    }
   } catch (error) {
     if (error instanceof TaskFlowApiError) {
       if (error.status === 401) redirect('/login');
@@ -34,6 +48,14 @@ export default async function ProjectBoardPage(
     }
     throw error;
   }
+
+  const canManageTasks =
+    currentUser.role === 'ADMIN' ||
+    project.ownerId === currentUser.id ||
+    projectMembers.some(
+      (member) =>
+        member.user.id === currentUser.id && member.role === 'MANAGER',
+    );
 
   return (
     <main className="min-h-screen bg-slate-100 p-6 sm:p-10">
@@ -46,41 +68,32 @@ export default async function ProjectBoardPage(
           <p className="mt-2 text-slate-600">
             {project.description ?? 'No project description provided.'}
           </p>
+          {canManageTasks && (
+            <div className="mt-4">
+              <CreateTaskForm members={projectMembers} projectId={project.id} />
+            </div>
+          )}
         </header>
 
-        <div className="grid gap-4 lg:grid-cols-4">
-          {columns.map((column) => {
-            const columnTasks = tasks.filter(
-              (task) => task.status === column.status,
-            );
-            return (
-              <section
-                className="rounded-xl bg-slate-200/70 p-3"
-                key={column.status}
-              >
-                <div className="mb-3 flex items-center justify-between">
-                  <h2 className="font-semibold text-slate-700">
-                    {column.title}
-                  </h2>
-                  <span className="rounded-full bg-white px-2 py-0.5 text-xs text-slate-600">
-                    {columnTasks.length}
-                  </span>
-                </div>
-                <div className="space-y-3">
-                  {columnTasks.length === 0 ? (
-                    <p className="rounded-lg border border-dashed border-slate-300 p-3 text-center text-sm text-slate-500">
-                      No tasks
-                    </p>
-                  ) : (
-                    columnTasks.map((task) => (
-                      <TaskCard key={task.id} task={task} />
-                    ))
-                  )}
-                </div>
-              </section>
-            );
-          })}
-        </div>
+        <TaskBoard
+          canManageTasks={canManageTasks}
+          currentUserId={currentUser.id}
+          key={tasks
+            .map((task) => `${task.id}-${task.status}-${task.position}`)
+            .join(',')}
+          tasks={tasks}
+        />
+
+        {canManageTasks && (
+          <div className="mt-6 max-w-xl">
+            <ProjectMembersPanel
+              availableUsers={availableUsers}
+              members={projectMembers}
+              ownerId={project.ownerId}
+              projectId={project.id}
+            />
+          </div>
+        )}
       </section>
     </main>
   );
