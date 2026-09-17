@@ -7,8 +7,10 @@ import {
     Param,
     Patch,
     Post,
+    Req,
     UseGuards,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { CreateUserDto } from './dto/create-user.dto.js';
 import { UpdateUserDto } from './dto/update-user.dto.js';
 import { UsersService } from './users.service.js';
@@ -48,8 +50,13 @@ export class UsersController {
     async update(
         @Param('id') id: string,
         @Body() updateUserDto: UpdateUserDto,
+        @Req() request: Request & { user: { sub: number } },
     ) {
-        return this.usersService.update(Number(id), updateUserDto);
+        return this.usersService.update(
+            Number(id),
+            updateUserDto,
+            request.user.sub,
+        );
     }
 
     @UseGuards(JwtAuthGuard, RolesGuard)

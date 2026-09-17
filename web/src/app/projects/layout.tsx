@@ -32,6 +32,14 @@ export default async function ProjectsLayout({
           </Link>
 
           <div className="flex items-center gap-4">
+            {user.role === 'ADMIN' && (
+              <Link
+                className="text-sm font-medium text-slate-600 hover:text-indigo-700"
+                href="/admin/users"
+              >
+                Admin
+              </Link>
+            )}
             <div className="text-right text-sm">
               <p className="font-medium text-slate-800">{user.name}</p>
               <p className="text-xs text-slate-500">{formatRole(user.role)}</p>

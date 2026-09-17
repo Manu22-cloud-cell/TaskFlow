@@ -1,5 +1,6 @@
 import {
     ConflictException,
+    ForbiddenException,
     Injectable,
     NotFoundException,
 } from '@nestjs/common';
@@ -8,6 +9,7 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateUserDto } from './dto/create-user.dto.js';
 import { UpdateUserDto } from './dto/update-user.dto.js';
+import { UserRole } from '../generated/prisma/enums.js';
 
 @Injectable()
 export class UsersService {
@@ -19,6 +21,7 @@ export class UsersService {
                 id: true,
                 name: true,
                 email: true,
+                role: true,
                 createdAt: true,
                 updatedAt: true,
             },
@@ -34,6 +37,7 @@ export class UsersService {
                 id: true,
                 name: true,
                 email: true,
+                role: true,
                 createdAt: true,
                 updatedAt: true,
             },
@@ -104,6 +108,7 @@ export class UsersService {
     async update(
         id: number,
         updateUserDto: UpdateUserDto,
+        requesterId?: number,
     ) {
         const existingUser = await this.prisma.user.findUnique({
             where: {
@@ -113,6 +118,30 @@ export class UsersService {
 
         if (!existingUser) {
             throw new NotFoundException('User not found');
+        }
+
+        if (
+            existingUser.role === UserRole.ADMIN &&
+            updateUserDto.role !== undefined &&
+            updateUserDto.role !== UserRole.ADMIN
+        ) {
+            const adminCount = await this.prisma.user.count({
+                where: { role: UserRole.ADMIN },
+            });
+
+            if (adminCount <= 1) {
+                throw new ForbiddenException('The last admin cannot be demoted');
+            }
+        }
+
+        if (
+            requesterId === id &&
+            updateUserDto.role !== undefined &&
+            updateUserDto.role !== UserRole.ADMIN
+        ) {
+            throw new ForbiddenException(
+                'Admins cannot remove their own admin role',
+            );
         }
 
         if (updateUserDto.email) {
@@ -146,6 +175,7 @@ export class UsersService {
                 id: true,
                 name: true,
                 email: true,
+                role: true,
                 createdAt: true,
                 updatedAt: true,
             },
@@ -161,6 +191,16 @@ export class UsersService {
 
         if (!existingUser) {
             throw new NotFoundException('User not found');
+        }
+
+        if (existingUser.role === UserRole.ADMIN) {
+            const adminCount = await this.prisma.user.count({
+                where: { role: UserRole.ADMIN },
+            });
+
+            if (adminCount <= 1) {
+                throw new ForbiddenException('The last admin cannot be deleted');
+            }
         }
 
         await this.prisma.user.delete({
