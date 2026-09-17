@@ -1,5 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
 
+import { BoardFilters } from './board-filters';
 import { CreateTaskForm } from './create-task-form';
 import { ProjectMembersPanel } from './project-members-panel';
 import { TaskBoard } from './task-board';
@@ -17,6 +18,16 @@ export default async function ProjectBoardPage(
   context: PageProps<'/projects/[projectId]'>,
 ) {
   const { projectId } = await context.params;
+  const searchParams = await context.searchParams;
+  const taskQuery = new URLSearchParams({ page: '1', limit: '100' });
+
+  for (const key of ['status', 'assignedToId', 'priority', 'dueDate']) {
+    const value = searchParams[key];
+
+    if (typeof value === 'string' && value) {
+      taskQuery.set(key, value);
+    }
+  }
   let project: Project;
   let tasks: Task[];
   let currentUser: User;
@@ -28,7 +39,7 @@ export default async function ProjectBoardPage(
       await Promise.all([
         taskflowFetch<Project>(`/projects/${projectId}`),
         taskflowFetch<PaginatedTasks>(
-          `/projects/${projectId}/tasks?page=1&limit=100`,
+          `/projects/${projectId}/tasks?${taskQuery.toString()}`,
         ),
         taskflowFetch<User>('/auth/me'),
         taskflowFetch<ProjectMember[]>(`/projects/${projectId}/members`),
@@ -74,6 +85,8 @@ export default async function ProjectBoardPage(
             </div>
           )}
         </header>
+
+        <BoardFilters members={projectMembers} />
 
         <TaskBoard
           canManageTasks={canManageTasks}
