@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 
 import { BoardFilters } from './board-filters';
+import { BoardPagination } from './board-pagination';
 import { CreateTaskForm } from './create-task-form';
 import { ProjectMembersPanel } from './project-members-panel';
 import { ProjectSettings } from './project-settings';
@@ -20,7 +21,10 @@ export default async function ProjectBoardPage(
 ) {
   const { projectId } = await context.params;
   const searchParams = await context.searchParams;
-  const taskQuery = new URLSearchParams({ page: '1', limit: '100' });
+  const requestedPage = Number(searchParams.page);
+  const page =
+    Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const taskQuery = new URLSearchParams({ page: String(page), limit: '20' });
 
   for (const key of ['status', 'assignedToId', 'priority', 'dueDate']) {
     const value = searchParams[key];
@@ -31,6 +35,7 @@ export default async function ProjectBoardPage(
   }
   let project: Project;
   let tasks: Task[];
+  let taskMeta: PaginatedTasks['meta'];
   let currentUser: User;
   let projectMembers: ProjectMember[];
   let availableUsers: UserSummary[] = [];
@@ -47,6 +52,7 @@ export default async function ProjectBoardPage(
       ]);
     project = projectResponse;
     tasks = tasksResponse.data;
+    taskMeta = tasksResponse.meta;
     currentUser = userResponse;
     projectMembers = membersResponse;
 
@@ -99,6 +105,17 @@ export default async function ProjectBoardPage(
             .map((task) => `${task.id}-${task.status}-${task.position}`)
             .join(',')}
           tasks={tasks}
+        />
+
+        {tasks.length === 0 && (
+          <p className="mt-6 rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-600">
+            No tasks match the selected filters.
+          </p>
+        )}
+        <BoardPagination
+          page={taskMeta.page}
+          total={taskMeta.total}
+          totalPages={taskMeta.totalPages}
         />
 
         {canManageTasks && (

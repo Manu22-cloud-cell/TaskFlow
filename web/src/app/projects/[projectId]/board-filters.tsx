@@ -31,6 +31,8 @@ export function BoardFilters({ members }: { members: ProjectMember[] }) {
       params.delete(name);
     }
 
+    params.delete('page');
+
     const query = params.toString();
     router.push(query ? `${pathname}?${query}` : pathname);
   }

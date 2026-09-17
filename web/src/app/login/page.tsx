@@ -1,4 +1,6 @@
 'use client';
+
+import Link from 'next/link';
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -35,6 +37,15 @@ export default function LoginPage() {
           <h1 className="mt-1 text-2xl font-semibold text-slate-900">
             Sign in to your workspace
           </h1>
+          <p className="mt-2 text-sm text-slate-600">
+            New to TaskFlow?{' '}
+            <Link
+              className="font-medium text-indigo-600 hover:text-indigo-800"
+              href="/register"
+            >
+              Create an account
+            </Link>
+          </p>
         </div>
         <label className="block text-sm font-medium text-slate-700">
           Email
