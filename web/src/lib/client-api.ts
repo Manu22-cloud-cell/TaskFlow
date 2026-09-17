@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { type InternalAxiosRequestConfig } from 'axios';
 
 export const clientApi = axios.create({
   baseURL: '/api',
@@ -6,6 +6,54 @@ export const clientApi = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+type RetriableRequest = InternalAxiosRequestConfig & {
+  hasRetriedAfterRefresh?: boolean;
+};
+
+let refreshRequest: Promise<void> | null = null;
+
+async function refreshAccessToken() {
+  if (!refreshRequest) {
+    refreshRequest = axios
+      .post('/api/auth/refresh')
+      .then(() => undefined)
+      .finally(() => {
+        refreshRequest = null;
+      });
+  }
+
+  return refreshRequest;
+}
+
+clientApi.interceptors.response.use(
+  (response) => response,
+  async (error: unknown) => {
+    if (!axios.isAxiosError(error) || error.response?.status !== 401) {
+      return Promise.reject(error);
+    }
+
+    const request = error.config as RetriableRequest | undefined;
+    const isAuthRequest = request?.url?.startsWith('/auth/');
+
+    if (!request || request.hasRetriedAfterRefresh || isAuthRequest) {
+      return Promise.reject(error);
+    }
+
+    request.hasRetriedAfterRefresh = true;
+
+    try {
+      await refreshAccessToken();
+      return clientApi(request);
+    } catch {
+      if (typeof window !== 'undefined') {
+        window.location.replace('/login');
+      }
+
+      return Promise.reject(error);
+    }
+  },
+);
 
 type ApiErrorResponse = {
   message?: string | string[];

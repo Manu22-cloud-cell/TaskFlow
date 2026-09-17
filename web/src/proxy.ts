@@ -3,12 +3,13 @@ const ACCESS_TOKEN_COOKIE = 'taskflow_access_token';
 const REFRESH_TOKEN_COOKIE = 'taskflow_refresh_token';
 
 export function proxy(request: NextRequest) {
-  if (
-    !request.cookies.has(ACCESS_TOKEN_COOKIE) &&
-    !request.cookies.has(REFRESH_TOKEN_COOKIE)
-  ) {
+  const accessToken = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
+  const refreshToken = request.cookies.get(REFRESH_TOKEN_COOKIE)?.value;
+
+  if (!accessToken && !refreshToken) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
+
   return NextResponse.next();
 }
 
