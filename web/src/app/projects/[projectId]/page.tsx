@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import { BoardFilters } from './board-filters';
 import { CreateTaskForm } from './create-task-form';
 import { ProjectMembersPanel } from './project-members-panel';
+import { ProjectSettings } from './project-settings';
 import { TaskBoard } from './task-board';
 import { TaskFlowApiError, taskflowFetch } from '@/lib/taskflow-api';
 import type {
@@ -67,6 +68,8 @@ export default async function ProjectBoardPage(
       (member) =>
         member.user.id === currentUser.id && member.role === 'MANAGER',
     );
+  const canDeleteProject =
+    currentUser.role === 'ADMIN' || project.ownerId === currentUser.id;
 
   return (
     <main className="min-h-screen bg-slate-100 p-6 sm:p-10">
@@ -80,8 +83,9 @@ export default async function ProjectBoardPage(
             {project.description ?? 'No project description provided.'}
           </p>
           {canManageTasks && (
-            <div className="mt-4">
+            <div className="mt-4 flex flex-wrap gap-3">
               <CreateTaskForm members={projectMembers} projectId={project.id} />
+              <ProjectSettings canDelete={canDeleteProject} project={project} />
             </div>
           )}
         </header>
