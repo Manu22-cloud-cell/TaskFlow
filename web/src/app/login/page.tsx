@@ -2,6 +2,8 @@
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+import { clientApi, getClientApiError } from '@/lib/client-api';
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -13,24 +15,11 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = (await response.json()) as { message?: string | string[] };
-      if (!response.ok) {
-        setError(
-          Array.isArray(data.message)
-            ? data.message.join(', ')
-            : (data.message ?? 'Unable to sign in'),
-        );
-        return;
-      }
+      await clientApi.post('/auth/login', { email, password });
       router.replace('/projects');
       router.refresh();
-    } catch {
-      setError('Unable to connect to TaskFlow. Please try again.');
+    } catch (error) {
+      setError(getClientApiError(error, 'Unable to sign in.'));
     } finally {
       setLoading(false);
     }

@@ -3,9 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+import { clientApi, getClientApiError } from '@/lib/client-api';
 import type { ProjectMember, UserSummary } from '@/lib/types';
-
-type ApiError = { message?: string };
 
 export function ProjectMembersPanel({
   projectId,
@@ -25,11 +24,6 @@ export function ProjectMembersPanel({
   const memberIds = new Set(members.map((member) => member.user.id));
   const candidates = availableUsers.filter((user) => !memberIds.has(user.id));
 
-  async function getError(response: Response) {
-    const body = (await response.json().catch(() => null)) as ApiError | null;
-    return body?.message ?? 'Unable to update project members.';
-  }
-
   async function addMember() {
     if (!selectedUserId || isSaving) return;
 
@@ -37,47 +31,33 @@ export function ProjectMembersPanel({
     setIsSaving(true);
 
     try {
-      const response = await fetch(`/api/projects/${projectId}/members`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: Number(selectedUserId) }),
+      await clientApi.post(`/projects/${projectId}/members`, {
+        userId: Number(selectedUserId),
       });
-
-      if (!response.ok) {
-        setError(await getError(response));
-        return;
-      }
 
       setSelectedUserId('');
       router.refresh();
-    } catch {
-      setError('Unable to reach the server. Please try again.');
+    } catch (error) {
+      setError(getClientApiError(error, 'Unable to add the project member.'));
     } finally {
       setIsSaving(false);
     }
   }
 
   async function updateRole(userId: number, role: 'MANAGER' | 'MEMBER') {
-    await changeMember(
-      `/api/projects/${projectId}/members/${userId}`,
-      'PATCH',
-      {
-        role,
-      },
-    );
+    await changeMember(`/projects/${projectId}/members/${userId}`, 'PATCH', {
+      role,
+    });
   }
 
   async function removeMember(userId: number) {
     if (!window.confirm('Remove this user from the project?')) return;
 
-    await changeMember(
-      `/api/projects/${projectId}/members/${userId}`,
-      'DELETE',
-    );
+    await changeMember(`/projects/${projectId}/members/${userId}`, 'DELETE');
   }
 
   async function changeMember(
-    url: string,
+    path: string,
     method: 'PATCH' | 'DELETE',
     body?: object,
   ) {
@@ -87,20 +67,15 @@ export function ProjectMembersPanel({
     setIsSaving(true);
 
     try {
-      const response = await fetch(url, {
-        method,
-        headers: body ? { 'Content-Type': 'application/json' } : undefined,
-        body: body ? JSON.stringify(body) : undefined,
-      });
-
-      if (!response.ok) {
-        setError(await getError(response));
-        return;
+      if (method === 'PATCH') {
+        await clientApi.patch(path, body);
+      } else {
+        await clientApi.delete(path);
       }
 
       router.refresh();
-    } catch {
-      setError('Unable to reach the server. Please try again.');
+    } catch (error) {
+      setError(getClientApiError(error, 'Unable to update project members.'));
     } finally {
       setIsSaving(false);
     }

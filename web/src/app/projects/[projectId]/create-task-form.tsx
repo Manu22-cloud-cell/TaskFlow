@@ -3,6 +3,7 @@
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+import { clientApi, getClientApiError } from '@/lib/client-api';
 import type { ProjectMember, TaskPriority, TaskStatus } from '@/lib/types';
 
 const statuses: { value: TaskStatus; label: string }[] = [
@@ -45,30 +46,20 @@ export function CreateTaskForm({
     setIsSaving(true);
 
     try {
-      const response = await fetch('/api/tasks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          projectId,
-          title: title.trim(),
-          ...(description.trim() ? { description: description.trim() } : {}),
-          status,
-          priority,
-          ...(assignedToId ? { assignedToId: Number(assignedToId) } : {}),
-          ...(dueDate ? { dueDate } : {}),
-        }),
+      await clientApi.post('/tasks', {
+        projectId,
+        title: title.trim(),
+        ...(description.trim() ? { description: description.trim() } : {}),
+        status,
+        priority,
+        ...(assignedToId ? { assignedToId: Number(assignedToId) } : {}),
+        ...(dueDate ? { dueDate } : {}),
       });
-      const data = (await response.json()) as { message?: string };
-
-      if (!response.ok) {
-        setError(data.message ?? 'Unable to create the task.');
-        return;
-      }
 
       setIsOpen(false);
       router.refresh();
-    } catch {
-      setError('Unable to reach the server. Please try again.');
+    } catch (error) {
+      setError(getClientApiError(error, 'Unable to create the task.'));
     } finally {
       setIsSaving(false);
     }

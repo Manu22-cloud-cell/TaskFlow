@@ -3,6 +3,7 @@
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+import { clientApi, getClientApiError } from '@/lib/client-api';
 import type { Project, ProjectStatus, User, UserSummary } from '@/lib/types';
 
 const statuses: { value: ProjectStatus; label: string }[] = [
@@ -38,27 +39,17 @@ export function CreateProjectForm({
     setIsSaving(true);
 
     try {
-      const response = await fetch('/api/projects', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: name.trim(),
-          ...(description.trim() ? { description: description.trim() } : {}),
-          status,
-          ...(isAdmin ? { ownerId: Number(ownerId) } : {}),
-        }),
+      const response = await clientApi.post<Project>('/projects', {
+        name: name.trim(),
+        ...(description.trim() ? { description: description.trim() } : {}),
+        status,
+        ...(isAdmin ? { ownerId: Number(ownerId) } : {}),
       });
-      const data = (await response.json()) as Project & { message?: string };
 
-      if (!response.ok) {
-        setError(data.message ?? 'Unable to create the project.');
-        return;
-      }
-
-      router.push(`/projects/${data.id}`);
+      router.push(`/projects/${response.data.id}`);
       router.refresh();
-    } catch {
-      setError('Unable to reach the server. Please try again.');
+    } catch (error) {
+      setError(getClientApiError(error, 'Unable to create the project.'));
     } finally {
       setIsSaving(false);
     }

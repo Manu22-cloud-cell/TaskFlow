@@ -24,6 +24,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { TaskCard } from './task-card';
+import { clientApi, getClientApiError } from '@/lib/client-api';
 import type { Task, TaskStatus } from '@/lib/types';
 
 const columns: { status: TaskStatus; title: string }[] = [
@@ -60,19 +61,6 @@ function createBoard(tasks: Task[]): TasksByStatus {
 
 function getTaskId(value: string) {
   return Number(value.replace('task-', ''));
-}
-
-function getErrorMessage(body: unknown) {
-  if (
-    typeof body === 'object' &&
-    body !== null &&
-    'message' in body &&
-    typeof body.message === 'string'
-  ) {
-    return body.message;
-  }
-
-  return 'Unable to move task. The board was restored.';
 }
 
 export function TaskBoard({
@@ -159,22 +147,20 @@ export function TaskBoard({
     setIsSaving(true);
 
     try {
-      const response = await fetch(`/api/tasks/${task.id}/move`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: targetStatus, position: targetIndex }),
+      await clientApi.patch(`/tasks/${task.id}/move`, {
+        status: targetStatus,
+        position: targetIndex,
       });
 
-      if (!response.ok) {
-        setBoard(previousBoard);
-        setToast(getErrorMessage(await response.json().catch(() => null)));
-        return;
-      }
-
       router.refresh();
-    } catch {
+    } catch (error) {
       setBoard(previousBoard);
-      setToast('Unable to reach the server. The board was restored.');
+      setToast(
+        getClientApiError(
+          error,
+          'Unable to move task. The board was restored.',
+        ),
+      );
     } finally {
       setIsSaving(false);
     }
@@ -204,22 +190,19 @@ export function TaskBoard({
     setIsSaving(true);
 
     try {
-      const response = await fetch(`/api/tasks/${task.id}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: targetStatus }),
+      await clientApi.patch(`/tasks/${task.id}/status`, {
+        status: targetStatus,
       });
 
-      if (!response.ok) {
-        setBoard(previousBoard);
-        setToast(getErrorMessage(await response.json().catch(() => null)));
-        return;
-      }
-
       router.refresh();
-    } catch {
+    } catch (error) {
       setBoard(previousBoard);
-      setToast('Unable to reach the server. The board was restored.');
+      setToast(
+        getClientApiError(
+          error,
+          'Unable to update task status. The board was restored.',
+        ),
+      );
     } finally {
       setIsSaving(false);
     }

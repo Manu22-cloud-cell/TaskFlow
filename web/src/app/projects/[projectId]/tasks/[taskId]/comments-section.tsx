@@ -3,14 +3,8 @@
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+import { clientApi, getClientApiError } from '@/lib/client-api';
 import type { Comment } from '@/lib/types';
-
-type CommentError = { message?: string | string[] };
-
-function getErrorMessage(body: CommentError | null) {
-  if (Array.isArray(body?.message)) return body.message.join(', ');
-  return body?.message ?? 'Unable to save the comment.';
-}
 
 export function CommentsSection({
   comments,
@@ -30,13 +24,6 @@ export function CommentsSection({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function readError(response: Response) {
-    const body = (await response
-      .json()
-      .catch(() => null)) as CommentError | null;
-    return getErrorMessage(body);
-  }
-
   async function createComment(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -46,21 +33,14 @@ export function CommentsSection({
     setIsSaving(true);
 
     try {
-      const response = await fetch(`/api/tasks/${taskId}/comments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: content.trim() }),
+      await clientApi.post(`/tasks/${taskId}/comments`, {
+        content: content.trim(),
       });
-
-      if (!response.ok) {
-        setError(await readError(response));
-        return;
-      }
 
       setContent('');
       router.refresh();
-    } catch {
-      setError('Unable to reach the server. Please try again.');
+    } catch (error) {
+      setError(getClientApiError(error, 'Unable to create the comment.'));
     } finally {
       setIsSaving(false);
     }
@@ -73,24 +53,14 @@ export function CommentsSection({
     setIsSaving(true);
 
     try {
-      const response = await fetch(
-        `/api/tasks/${taskId}/comments/${commentId}`,
-        {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content: editingContent.trim() }),
-        },
-      );
-
-      if (!response.ok) {
-        setError(await readError(response));
-        return;
-      }
+      await clientApi.patch(`/tasks/${taskId}/comments/${commentId}`, {
+        content: editingContent.trim(),
+      });
 
       setEditingCommentId(null);
       router.refresh();
-    } catch {
-      setError('Unable to reach the server. Please try again.');
+    } catch (error) {
+      setError(getClientApiError(error, 'Unable to update the comment.'));
     } finally {
       setIsSaving(false);
     }
@@ -103,19 +73,11 @@ export function CommentsSection({
     setIsSaving(true);
 
     try {
-      const response = await fetch(
-        `/api/tasks/${taskId}/comments/${commentId}`,
-        { method: 'DELETE' },
-      );
-
-      if (!response.ok) {
-        setError(await readError(response));
-        return;
-      }
+      await clientApi.delete(`/tasks/${taskId}/comments/${commentId}`);
 
       router.refresh();
-    } catch {
-      setError('Unable to reach the server. Please try again.');
+    } catch (error) {
+      setError(getClientApiError(error, 'Unable to delete the comment.'));
     } finally {
       setIsSaving(false);
     }

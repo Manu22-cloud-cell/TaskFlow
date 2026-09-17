@@ -1,6 +1,8 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+
+import { clientApi, getClientApiError } from '@/lib/client-api';
 import type { ProjectMember, Task, TaskPriority } from '@/lib/types';
 export function TaskActions({
   task,
@@ -23,24 +25,16 @@ export function TaskActions({
     setSaving(true);
     setError(null);
     try {
-      const response = await fetch(`/api/tasks/${task.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title,
-          description: description.trim() || null,
-          priority,
-          assignedToId: assignedToId ? Number(assignedToId) : null,
-          dueDate: dueDate || null,
-        }),
+      await clientApi.patch(`/tasks/${task.id}`, {
+        title,
+        description: description.trim() || null,
+        priority,
+        assignedToId: assignedToId ? Number(assignedToId) : null,
+        dueDate: dueDate || null,
       });
-      if (!response.ok) {
-        setError((await response.json()).message ?? 'Unable to update task.');
-        return;
-      }
       router.refresh();
-    } catch {
-      setError('Unable to reach the server.');
+    } catch (error) {
+      setError(getClientApiError(error, 'Unable to update task.'));
     } finally {
       setSaving(false);
     }
@@ -48,10 +42,14 @@ export function TaskActions({
   async function remove() {
     if (!window.confirm('Delete this task?')) return;
     setSaving(true);
-    const response = await fetch(`/api/tasks/${task.id}`, { method: 'DELETE' });
-    if (response.ok) router.push(`/projects/${task.projectId}`);
-    else {
-      setError((await response.json()).message ?? 'Unable to delete task.');
+    setError(null);
+
+    try {
+      await clientApi.delete(`/tasks/${task.id}`);
+      router.push(`/projects/${task.projectId}`);
+    } catch (error) {
+      setError(getClientApiError(error, 'Unable to delete task.'));
+    } finally {
       setSaving(false);
     }
   }
