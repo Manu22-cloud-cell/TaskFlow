@@ -28,7 +28,7 @@ export function TaskCard({
       {children}
       <Link
         className="mt-3 inline-block text-xs font-medium text-indigo-600 hover:text-indigo-800"
-        href={`/projects/${task.projectId}/tasks/${task.id}`}
+        href={`/tasks/${task.id}`}
       >
         View details
       </Link>

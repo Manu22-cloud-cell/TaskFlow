@@ -24,9 +24,9 @@ import {
 } from '@/services/server/tasks.service';
 
 export default async function TaskDetailsPage(
-  context: PageProps<'/projects/[projectId]/tasks/[taskId]'>,
+  context: PageProps<'/tasks/[taskId]'>,
 ) {
-  const { projectId, taskId } = await context.params;
+  const { taskId } = await context.params;
 
   let project: Project;
   let task: Task;
@@ -36,15 +36,7 @@ export default async function TaskDetailsPage(
   let projectMembers: ProjectMember[];
 
   try {
-    [project, task, comments, activity, currentUser, projectMembers] =
-      await Promise.all([
-        getProject(projectId),
-        getTask(taskId),
-        getTaskComments(taskId),
-        getTaskActivity(taskId),
-        getCurrentUser(),
-        getProjectMembers(projectId),
-      ]);
+    task = await getTask(taskId);
   } catch (error) {
     if (error instanceof TaskFlowApiError) {
       if (error.status === 401) redirect('/login');
@@ -54,7 +46,23 @@ export default async function TaskDetailsPage(
     throw error;
   }
 
-  if (task.projectId !== Number(projectId)) notFound();
+  try {
+    [project, comments, activity, currentUser, projectMembers] =
+      await Promise.all([
+        getProject(task.projectId),
+        getTaskComments(taskId),
+        getTaskActivity(taskId),
+        getCurrentUser(),
+        getProjectMembers(task.projectId),
+      ]);
+  } catch (error) {
+    if (error instanceof TaskFlowApiError) {
+      if (error.status === 401) redirect('/login');
+      if (error.status === 404) notFound();
+    }
+
+    throw error;
+  }
 
   const canManageProject =
     currentUser.role === 'ADMIN' ||
@@ -69,7 +77,7 @@ export default async function TaskDetailsPage(
       <section className="mx-auto max-w-6xl">
         <Link
           className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
-          href={`/projects/${projectId}`}
+          href={`/projects/${project.id}`}
         >
           ← Back to {project.name}
         </Link>
