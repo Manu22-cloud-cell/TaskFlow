@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
-import { CommentsSection } from './comments-section';
-import { TaskActions } from './task-actions';
+import { CommentsSection } from '@/features/tasks/components/comments-section';
+import { TaskActions } from '@/features/tasks/components/task-actions';
 import { TaskFlowApiError } from '@/lib/taskflow-api';
 import type {
   Comment,

@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
-import { CreateProjectForm } from './create-project-form';
-import { ProjectFilters } from './project-filters';
 import type { Project, ProjectStatus, User, UserSummary } from '@/lib/types';
+import { CreateProjectForm } from '@/features/projects/components/create-project-form';
+import { ProjectFilters } from '@/features/projects/components/project-filters';
 import { getCurrentUser } from '@/services/server/auth.service';
 import { getProjects } from '@/services/server/projects.service';
 import { getUserSummaries } from '@/services/server/users.service';

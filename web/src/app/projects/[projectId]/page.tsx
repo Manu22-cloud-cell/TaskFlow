@@ -1,11 +1,11 @@
 import { notFound, redirect } from 'next/navigation';
 
-import { BoardFilters } from './board-filters';
-import { BoardPagination } from './board-pagination';
-import { CreateTaskForm } from './create-task-form';
-import { ProjectMembersPanel } from './project-members-panel';
-import { ProjectSettings } from './project-settings';
-import { TaskBoard } from './task-board';
+import { ProjectMembersPanel } from '@/features/projects/components/project-members-panel';
+import { ProjectSettings } from '@/features/projects/components/project-settings';
+import { BoardFilters } from '@/features/tasks/components/board-filters';
+import { BoardPagination } from '@/features/tasks/components/board-pagination';
+import { CreateTaskForm } from '@/features/tasks/components/create-task-form';
+import { TaskBoard } from '@/features/tasks/components/task-board';
 import { TaskFlowApiError } from '@/lib/taskflow-api';
 import type {
   PaginatedTasks,
