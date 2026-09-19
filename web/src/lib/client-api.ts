@@ -1,11 +1,20 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios';
 
+const baseURL = process.env.NEXT_PUBLIC_TASKFLOW_API_URL;
+
+if (!baseURL) {
+  throw new Error('NEXT_PUBLIC_TASKFLOW_API_URL is not configured');
+}
+
 export const clientApi = axios.create({
-  baseURL: '/api',
+  baseURL,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
+const authApi = axios.create({ baseURL, withCredentials: true });
 
 type RetriableRequest = InternalAxiosRequestConfig & {
   hasRetriedAfterRefresh?: boolean;
@@ -15,8 +24,8 @@ let refreshRequest: Promise<void> | null = null;
 
 async function refreshAccessToken() {
   if (!refreshRequest) {
-    refreshRequest = axios
-      .post('/api/auth/refresh')
+    refreshRequest = authApi
+      .post('/auth/refresh')
       .then(() => undefined)
       .finally(() => {
         refreshRequest = null;

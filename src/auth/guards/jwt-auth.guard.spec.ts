@@ -1,7 +1,4 @@
-import {
-  ExecutionContext,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { jest } from '@jest/globals';
@@ -22,6 +19,7 @@ describe('JwtAuthGuard', () => {
   let request: {
     headers: {
       authorization?: string;
+      cookie?: string;
     };
     user?: unknown;
   };
@@ -57,27 +55,32 @@ describe('JwtAuthGuard', () => {
 
   it('should throw 401 when authorization header is missing', async () => {
     await expect(
-      guard.canActivate(
-        context as unknown as ExecutionContext,
-      ),
-    ).rejects.toThrow(
-      new UnauthorizedException(
-        'Access token is required',
-      ),
-    );
+      guard.canActivate(context as unknown as ExecutionContext),
+    ).rejects.toThrow(new UnauthorizedException('Access token is required'));
+  });
+
+  it('should read an access token from an HTTP-only cookie', async () => {
+    const payload = { sub: 1, email: 'test@example.com', role: 'MEMBER' };
+    request.headers.cookie = 'taskflow_access_token=cookie-token';
+    configService.get.mockReturnValue('test-secret');
+    jwtService.verifyAsync.mockResolvedValue(payload);
+
+    await expect(
+      guard.canActivate(context as unknown as ExecutionContext),
+    ).resolves.toBe(true);
+
+    expect(jwtService.verifyAsync).toHaveBeenCalledWith('cookie-token', {
+      secret: 'test-secret',
+    });
   });
 
   it('should throw 401 when authorization header has an invalid format', async () => {
     request.headers.authorization = 'Basic abc123';
 
     await expect(
-      guard.canActivate(
-        context as unknown as ExecutionContext,
-      ),
+      guard.canActivate(context as unknown as ExecutionContext),
     ).rejects.toThrow(
-      new UnauthorizedException(
-        'Invalid authorization header',
-      ),
+      new UnauthorizedException('Invalid authorization header'),
     );
   });
 
@@ -85,13 +88,9 @@ describe('JwtAuthGuard', () => {
     request.headers.authorization = 'Bearer';
 
     await expect(
-      guard.canActivate(
-        context as unknown as ExecutionContext,
-      ),
+      guard.canActivate(context as unknown as ExecutionContext),
     ).rejects.toThrow(
-      new UnauthorizedException(
-        'Invalid authorization header',
-      ),
+      new UnauthorizedException('Invalid authorization header'),
     );
   });
 
@@ -101,20 +100,12 @@ describe('JwtAuthGuard', () => {
     configService.get.mockReturnValue(undefined);
 
     await expect(
-      guard.canActivate(
-        context as unknown as ExecutionContext,
-      ),
-    ).rejects.toThrow(
-      'JWT_SECRET is not configured',
-    );
+      guard.canActivate(context as unknown as ExecutionContext),
+    ).rejects.toThrow('JWT_SECRET is not configured');
 
-    expect(
-      configService.get,
-    ).toHaveBeenCalledWith('JWT_SECRET');
+    expect(configService.get).toHaveBeenCalledWith('JWT_SECRET');
 
-    expect(
-      jwtService.verifyAsync,
-    ).not.toHaveBeenCalled();
+    expect(jwtService.verifyAsync).not.toHaveBeenCalled();
   });
 
   it('should return true and attach the payload for a valid JWT', async () => {
@@ -136,12 +127,9 @@ describe('JwtAuthGuard', () => {
 
     expect(result).toBe(true);
 
-    expect(jwtService.verifyAsync).toHaveBeenCalledWith(
-      'valid-token',
-      {
-        secret: 'test-secret',
-      },
-    );
+    expect(jwtService.verifyAsync).toHaveBeenCalledWith('valid-token', {
+      secret: 'test-secret',
+    });
 
     expect(request.user).toEqual(payload);
   });
@@ -151,26 +139,16 @@ describe('JwtAuthGuard', () => {
 
     configService.get.mockReturnValue('test-secret');
 
-    jwtService.verifyAsync.mockRejectedValue(
-      new Error('Token expired'),
-    );
+    jwtService.verifyAsync.mockRejectedValue(new Error('Token expired'));
 
     await expect(
-      guard.canActivate(
-        context as unknown as ExecutionContext,
-      ),
+      guard.canActivate(context as unknown as ExecutionContext),
     ).rejects.toThrow(
-      new UnauthorizedException(
-        'Invalid or expired access token',
-      ),
+      new UnauthorizedException('Invalid or expired access token'),
     );
 
-    expect(jwtService.verifyAsync).toHaveBeenCalledWith(
-      'invalid-token',
-      {
-        secret: 'test-secret',
-      },
-    );
+    expect(jwtService.verifyAsync).toHaveBeenCalledWith('invalid-token', {
+      secret: 'test-secret',
+    });
   });
-
 });

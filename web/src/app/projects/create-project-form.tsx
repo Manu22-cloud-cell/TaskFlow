@@ -3,8 +3,9 @@
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-import { clientApi, getClientApiError } from '@/lib/client-api';
-import type { Project, ProjectStatus, User, UserSummary } from '@/lib/types';
+import { getClientApiError } from '@/lib/client-api';
+import type { ProjectStatus, User, UserSummary } from '@/lib/types';
+import { createProject as createProjectRequest } from '@/services/client/projects.service';
 
 const statuses: { value: ProjectStatus; label: string }[] = [
   { value: 'PLANNING', label: 'Planning' },
@@ -39,14 +40,14 @@ export function CreateProjectForm({
     setIsSaving(true);
 
     try {
-      const response = await clientApi.post<Project>('/projects', {
+      const project = await createProjectRequest({
         name: name.trim(),
         ...(description.trim() ? { description: description.trim() } : {}),
         status,
         ...(isAdmin ? { ownerId: Number(ownerId) } : {}),
       });
 
-      router.push(`/projects/${response.data.id}`);
+      router.push(`/projects/${project.id}`);
       router.refresh();
     } catch (error) {
       setError(getClientApiError(error, 'Unable to create the project.'));

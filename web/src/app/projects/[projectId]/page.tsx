@@ -6,7 +6,7 @@ import { CreateTaskForm } from './create-task-form';
 import { ProjectMembersPanel } from './project-members-panel';
 import { ProjectSettings } from './project-settings';
 import { TaskBoard } from './task-board';
-import { TaskFlowApiError, taskflowFetch } from '@/lib/taskflow-api';
+import { TaskFlowApiError } from '@/lib/taskflow-api';
 import type {
   PaginatedTasks,
   Project,
@@ -15,6 +15,13 @@ import type {
   User,
   UserSummary,
 } from '@/lib/types';
+import { getCurrentUser } from '@/services/server/auth.service';
+import {
+  getProject,
+  getProjectMembers,
+  getProjectTasks,
+} from '@/services/server/projects.service';
+import { getUserSummaries } from '@/services/server/users.service';
 
 export default async function ProjectBoardPage(
   context: PageProps<'/projects/[projectId]'>,
@@ -43,12 +50,10 @@ export default async function ProjectBoardPage(
   try {
     const [projectResponse, tasksResponse, userResponse, membersResponse] =
       await Promise.all([
-        taskflowFetch<Project>(`/projects/${projectId}`),
-        taskflowFetch<PaginatedTasks>(
-          `/projects/${projectId}/tasks?${taskQuery.toString()}`,
-        ),
-        taskflowFetch<User>('/auth/me'),
-        taskflowFetch<ProjectMember[]>(`/projects/${projectId}/members`),
+        getProject(projectId),
+        getProjectTasks(projectId, taskQuery),
+        getCurrentUser(),
+        getProjectMembers(projectId),
       ]);
     project = projectResponse;
     tasks = tasksResponse.data;
@@ -57,7 +62,7 @@ export default async function ProjectBoardPage(
     projectMembers = membersResponse;
 
     if (currentUser.role !== 'MEMBER') {
-      availableUsers = await taskflowFetch<UserSummary[]>('/users');
+      availableUsers = await getUserSummaries();
     }
   } catch (error) {
     if (error instanceof TaskFlowApiError) {

@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-import { clientApi, getClientApiError } from '@/lib/client-api';
+import { getClientApiError } from '@/lib/client-api';
+import { register as registerUser } from '@/services/client/auth.service';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -27,7 +28,7 @@ export default function RegisterPage() {
     setIsSubmitting(true);
 
     try {
-      await clientApi.post('/auth/register', { name, email, password });
+      await registerUser({ name, email, password });
       router.replace('/login');
     } catch (error) {
       setError(getClientApiError(error, 'Unable to create your account.'));

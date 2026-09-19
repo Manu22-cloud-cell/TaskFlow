@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-import { clientApi, getClientApiError } from '@/lib/client-api';
+import { getClientApiError } from '@/lib/client-api';
+import { login } from '@/services/client/auth.service';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -17,7 +18,7 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      await clientApi.post('/auth/login', { email, password });
+      await login({ email, password });
       router.replace('/projects');
       router.refresh();
     } catch (error) {

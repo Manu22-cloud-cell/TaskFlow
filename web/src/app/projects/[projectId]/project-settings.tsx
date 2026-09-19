@@ -3,8 +3,12 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-import { clientApi, getClientApiError } from '@/lib/client-api';
+import { getClientApiError } from '@/lib/client-api';
 import type { Project, ProjectStatus } from '@/lib/types';
+import {
+  deleteProject as deleteProjectRequest,
+  updateProject,
+} from '@/services/client/projects.service';
 
 const statuses: { value: ProjectStatus; label: string }[] = [
   { value: 'PLANNING', label: 'Planning' },
@@ -35,7 +39,7 @@ export function ProjectSettings({
     setIsSaving(true);
 
     try {
-      await clientApi.patch(`/projects/${project.id}`, {
+      await updateProject(project.id, {
         name: name.trim(),
         description: description.trim(),
         status,
@@ -61,7 +65,7 @@ export function ProjectSettings({
     setIsSaving(true);
 
     try {
-      await clientApi.delete(`/projects/${project.id}`);
+      await deleteProjectRequest(project.id);
       router.replace('/projects');
       router.refresh();
     } catch (error) {

@@ -3,8 +3,11 @@ import { redirect } from 'next/navigation';
 
 import { CreateProjectForm } from './create-project-form';
 import { ProjectFilters } from './project-filters';
-import { TaskFlowApiError, taskflowFetch } from '@/lib/taskflow-api';
 import type { Project, ProjectStatus, User, UserSummary } from '@/lib/types';
+import { getCurrentUser } from '@/services/server/auth.service';
+import { getProjects } from '@/services/server/projects.service';
+import { getUserSummaries } from '@/services/server/users.service';
+import { TaskFlowApiError } from '@/lib/taskflow-api';
 
 const labels: Record<Project['status'], string> = {
   PLANNING: 'Planning',
@@ -32,12 +35,12 @@ export default async function ProjectsPage({
 
   try {
     [projects, currentUser] = await Promise.all([
-      taskflowFetch<Project[]>('/projects'),
-      taskflowFetch<User>('/auth/me'),
+      getProjects(),
+      getCurrentUser(),
     ]);
 
     if (currentUser.role === 'ADMIN') {
-      owners = await taskflowFetch<UserSummary[]>('/users');
+      owners = await getUserSummaries();
     }
   } catch (error) {
     if (error instanceof TaskFlowApiError && error.status === 401)

@@ -2,8 +2,9 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { LogoutButton } from './logout-button';
-import { TaskFlowApiError, taskflowFetch } from '@/lib/taskflow-api';
+import { TaskFlowApiError } from '@/lib/taskflow-api';
 import type { User } from '@/lib/types';
+import { getCurrentUser } from '@/services/server/auth.service';
 
 export default async function ProjectsLayout({
   children,
@@ -11,7 +12,7 @@ export default async function ProjectsLayout({
   let user: User;
 
   try {
-    user = await taskflowFetch<User>('/auth/me');
+    user = await getCurrentUser();
   } catch (error) {
     if (error instanceof TaskFlowApiError && error.status === 401) {
       redirect('/login');

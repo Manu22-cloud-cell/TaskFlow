@@ -3,8 +3,13 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-import { clientApi, getClientApiError } from '@/lib/client-api';
+import { getClientApiError } from '@/lib/client-api';
 import type { ProjectMember, UserSummary } from '@/lib/types';
+import {
+  addProjectMember,
+  removeProjectMember,
+  updateProjectMemberRole,
+} from '@/services/client/projects.service';
 
 export function ProjectMembersPanel({
   projectId,
@@ -31,9 +36,7 @@ export function ProjectMembersPanel({
     setIsSaving(true);
 
     try {
-      await clientApi.post(`/projects/${projectId}/members`, {
-        userId: Number(selectedUserId),
-      });
+      await addProjectMember(projectId, Number(selectedUserId));
 
       setSelectedUserId('');
       router.refresh();
@@ -45,21 +48,19 @@ export function ProjectMembersPanel({
   }
 
   async function updateRole(userId: number, role: 'MANAGER' | 'MEMBER') {
-    await changeMember(`/projects/${projectId}/members/${userId}`, 'PATCH', {
-      role,
-    });
+    await changeMember(userId, 'PATCH', role);
   }
 
   async function removeMember(userId: number) {
     if (!window.confirm('Remove this user from the project?')) return;
 
-    await changeMember(`/projects/${projectId}/members/${userId}`, 'DELETE');
+    await changeMember(userId, 'DELETE');
   }
 
   async function changeMember(
-    path: string,
+    userId: number,
     method: 'PATCH' | 'DELETE',
-    body?: object,
+    role?: 'MANAGER' | 'MEMBER',
   ) {
     if (isSaving) return;
 
@@ -68,9 +69,9 @@ export function ProjectMembersPanel({
 
     try {
       if (method === 'PATCH') {
-        await clientApi.patch(path, body);
+        await updateProjectMemberRole(projectId, userId, role!);
       } else {
-        await clientApi.delete(path);
+        await removeProjectMember(projectId, userId);
       }
 
       router.refresh();

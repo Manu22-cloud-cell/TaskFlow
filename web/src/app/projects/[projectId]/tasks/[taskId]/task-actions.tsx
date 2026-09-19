@@ -2,8 +2,12 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-import { clientApi, getClientApiError } from '@/lib/client-api';
+import { getClientApiError } from '@/lib/client-api';
 import type { ProjectMember, Task, TaskPriority } from '@/lib/types';
+import {
+  deleteTask,
+  updateTask,
+} from '@/services/client/tasks.service';
 export function TaskActions({
   task,
   members,
@@ -25,7 +29,7 @@ export function TaskActions({
     setSaving(true);
     setError(null);
     try {
-      await clientApi.patch(`/tasks/${task.id}`, {
+      await updateTask(task.id, {
         title,
         description: description.trim() || null,
         priority,
@@ -45,7 +49,7 @@ export function TaskActions({
     setError(null);
 
     try {
-      await clientApi.delete(`/tasks/${task.id}`);
+      await deleteTask(task.id);
       router.push(`/projects/${task.projectId}`);
     } catch (error) {
       setError(getClientApiError(error, 'Unable to delete task.'));

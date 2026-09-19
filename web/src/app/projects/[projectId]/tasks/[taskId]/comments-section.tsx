@@ -3,8 +3,13 @@
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-import { clientApi, getClientApiError } from '@/lib/client-api';
+import { getClientApiError } from '@/lib/client-api';
 import type { Comment } from '@/lib/types';
+import {
+  createComment as createCommentRequest,
+  deleteComment as deleteCommentRequest,
+  updateComment as updateCommentRequest,
+} from '@/services/client/comments.service';
 
 export function CommentsSection({
   comments,
@@ -33,9 +38,7 @@ export function CommentsSection({
     setIsSaving(true);
 
     try {
-      await clientApi.post(`/tasks/${taskId}/comments`, {
-        content: content.trim(),
-      });
+      await createCommentRequest(taskId, content.trim());
 
       setContent('');
       router.refresh();
@@ -53,9 +56,7 @@ export function CommentsSection({
     setIsSaving(true);
 
     try {
-      await clientApi.patch(`/tasks/${taskId}/comments/${commentId}`, {
-        content: editingContent.trim(),
-      });
+      await updateCommentRequest(taskId, commentId, editingContent.trim());
 
       setEditingCommentId(null);
       router.refresh();
@@ -73,7 +74,7 @@ export function CommentsSection({
     setIsSaving(true);
 
     try {
-      await clientApi.delete(`/tasks/${taskId}/comments/${commentId}`);
+      await deleteCommentRequest(taskId, commentId);
 
       router.refresh();
     } catch (error) {

@@ -1,6 +1,6 @@
 # TaskFlow
 
-TaskFlow is a Jira-style task-management backend built with NestJS, PostgreSQL, and Prisma. It provides JWT authentication, project-scoped permissions, board-ready tasks, comments, and an activity feed. A frontend has not yet been added.
+TaskFlow is a Jira-style task-management application with a NestJS, PostgreSQL, and Prisma API plus a Next.js frontend. It provides JWT authentication, project-scoped permissions, board-ready tasks, comments, and an activity feed.
 
 ## Features
 
@@ -14,14 +14,14 @@ TaskFlow is a Jira-style task-management backend built with NestJS, PostgreSQL, 
 
 ## Stack
 
-| Technology | Purpose |
-| --- | --- |
+| Technology          | Purpose                                    |
+| ------------------- | ------------------------------------------ |
 | NestJS / TypeScript | HTTP API and modular application structure |
-| PostgreSQL | Relational database |
-| Prisma 7 | Typed database client and migrations |
-| JWT / bcrypt | Authentication and credential security |
-| class-validator | Request validation |
-| Jest / Supertest | Unit and end-to-end tests |
+| PostgreSQL          | Relational database                        |
+| Prisma 7            | Typed database client and migrations       |
+| JWT / bcrypt        | Authentication and credential security     |
+| class-validator     | Request validation                         |
+| Jest / Supertest    | Unit and end-to-end tests                  |
 
 ## Setup
 
@@ -46,6 +46,7 @@ JWT_EXPIRES_IN="15m"
 JWT_REFRESH_SECRET="replace-with-a-different-long-random-secret"
 JWT_REFRESH_EXPIRES_IN="7d"
 PORT=3000
+CORS_ORIGIN="http://localhost:3001"
 ```
 
 Generate Prisma types, apply migrations, and start the API:
@@ -95,10 +96,10 @@ src/
 
 TaskFlow has two role layers.
 
-| Role layer | Values | Purpose |
-| --- | --- | --- |
-| Global `User.role` | `ADMIN`, `MANAGER`, `MEMBER` | System-wide capabilities |
-| `ProjectMember.role` | `MANAGER`, `MEMBER` | Capabilities inside one project |
+| Role layer           | Values                       | Purpose                         |
+| -------------------- | ---------------------------- | ------------------------------- |
+| Global `User.role`   | `ADMIN`, `MANAGER`, `MEMBER` | System-wide capabilities        |
+| `ProjectMember.role` | `MANAGER`, `MEMBER`          | Capabilities inside one project |
 
 Rules:
 
@@ -120,14 +121,14 @@ User ──owns──────────< Project ──contains───�
   └──< ProjectMember >── Project
 ```
 
-| Model | Purpose |
-| --- | --- |
-| `User` | Identity, global role, password hash, and refresh-token session state |
-| `Project` | A project with an owner and lifecycle status |
-| `ProjectMember` | Unique `(projectId, userId)` membership with project role |
-| `Task` | Board work item with status, priority, optional assignee/due date, and `position` |
-| `Comment` | A task discussion entry with an author |
-| `TaskActivity` | Immutable audit event with actor, type, and optional JSON metadata |
+| Model           | Purpose                                                                           |
+| --------------- | --------------------------------------------------------------------------------- |
+| `User`          | Identity, global role, password hash, and refresh-token session state             |
+| `Project`       | A project with an owner and lifecycle status                                      |
+| `ProjectMember` | Unique `(projectId, userId)` membership with project role                         |
+| `Task`          | Board work item with status, priority, optional assignee/due date, and `position` |
+| `Comment`       | A task discussion entry with an author                                            |
+| `TaskActivity`  | Immutable audit event with actor, type, and optional JSON metadata                |
 
 `Task.position` is zero-based and indexed with `(projectId, status, position)`. It is maintained transactionally when tasks are created, moved, or status-transitioned.
 
@@ -136,36 +137,36 @@ User ──owns──────────< Project ──contains───�
 All protected endpoints require:
 
 ```http
-Authorization: Bearer <accessToken>
+HTTP-only `taskflow_access_token` cookies. Bearer tokens are also accepted for API tools such as Postman.
 ```
 
 ### Authentication
 
-| Method | Route | Description |
-| --- | --- | --- |
-| POST | `/auth/register` | Register a member user |
-| POST | `/auth/login` | Receive access and refresh tokens |
-| POST | `/auth/refresh` | Rotate refresh token and receive new tokens |
+| Method | Route            | Description                                    |
+| ------ | ---------------- | ---------------------------------------------- |
+| POST   | `/auth/register` | Register a member user                         |
+| POST   | `/auth/login`    | Set HTTP-only access and refresh-token cookies |
+| POST   | `/auth/refresh`  | Rotate the HTTP-only auth cookies              |
 
 ### Projects and members
 
-| Method | Route | Description |
-| --- | --- | --- |
-| GET | `/projects` | List projects visible to requester |
-| POST | `/projects` | Create project (admin or global manager) |
-| GET/PATCH/DELETE | `/projects/:id` | Read, manage, or delete subject to project scope |
-| GET/POST | `/projects/:projectId/members` | List or add project members |
-| PATCH/DELETE | `/projects/:projectId/members/:userId` | Change a member role or remove a member |
+| Method           | Route                                  | Description                                      |
+| ---------------- | -------------------------------------- | ------------------------------------------------ |
+| GET              | `/projects`                            | List projects visible to requester               |
+| POST             | `/projects`                            | Create project (admin or global manager)         |
+| GET/PATCH/DELETE | `/projects/:id`                        | Read, manage, or delete subject to project scope |
+| GET/POST         | `/projects/:projectId/members`         | List or add project members                      |
+| PATCH/DELETE     | `/projects/:projectId/members/:userId` | Change a member role or remove a member          |
 
 ### Tasks and board
 
-| Method | Route | Description |
-| --- | --- | --- |
-| GET/POST | `/tasks` | List accessible tasks or create a task |
-| GET/PATCH/DELETE | `/tasks/:id` | Read, edit, or delete a task |
-| PATCH | `/tasks/:id/move` | Move a task to a status/position; manager scope required |
-| PATCH | `/tasks/:id/status` | Transition task status; assigned members may update their own task |
-| GET | `/projects/:projectId/tasks` | Board query with filters and pagination |
+| Method           | Route                        | Description                                                        |
+| ---------------- | ---------------------------- | ------------------------------------------------------------------ |
+| GET/POST         | `/tasks`                     | List accessible tasks or create a task                             |
+| GET/PATCH/DELETE | `/tasks/:id`                 | Read, edit, or delete a task                                       |
+| PATCH            | `/tasks/:id/move`            | Move a task to a status/position; manager scope required           |
+| PATCH            | `/tasks/:id/status`          | Transition task status; assigned members may update their own task |
+| GET              | `/projects/:projectId/tasks` | Board query with filters and pagination                            |
 
 Board query parameters: `status`, `assignedToId`, `priority`, `dueDate`, `page`, and `limit` (maximum `100`).
 
@@ -181,11 +182,11 @@ Move request:
 
 ### Comments and activity
 
-| Method | Route | Description |
-| --- | --- | --- |
-| GET/POST | `/tasks/:taskId/comments` | List or add comments |
-| PATCH/DELETE | `/tasks/:taskId/comments/:commentId` | Edit or remove a comment |
-| GET | `/tasks/:taskId/activity` | Read newest-first activity feed |
+| Method       | Route                                | Description                     |
+| ------------ | ------------------------------------ | ------------------------------- |
+| GET/POST     | `/tasks/:taskId/comments`            | List or add comments            |
+| PATCH/DELETE | `/tasks/:taskId/comments/:commentId` | Edit or remove a comment        |
+| GET          | `/tasks/:taskId/activity`            | Read newest-first activity feed |
 
 Activity currently records task creation, status changes, assignee changes, priority changes, due-date changes, and comments.
 

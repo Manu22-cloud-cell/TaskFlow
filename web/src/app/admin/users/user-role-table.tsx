@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-import { clientApi, getClientApiError } from '@/lib/client-api';
+import { getClientApiError } from '@/lib/client-api';
 import type { User, UserRole } from '@/lib/types';
+import { updateUserRole } from '@/services/client/users.service';
 
 export function UserRoleTable({
   users,
@@ -22,7 +23,7 @@ export function UserRoleTable({
     setSavingUserId(userId);
 
     try {
-      await clientApi.patch(`/users/${userId}`, { role });
+      await updateUserRole(userId, role);
       router.refresh();
     } catch (error) {
       setError(getClientApiError(error, 'Unable to update the user role.'));

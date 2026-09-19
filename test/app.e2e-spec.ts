@@ -1,12 +1,10 @@
-import {
-  INestApplication,
-  ValidationPipe,
-} from '@nestjs/common';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
 
 import { AppModule } from '../src/app.module.js';
+import { getAccessTokenFromCookies } from './helpers/auth.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import { UserRole } from '../src/generated/prisma/enums.js';
 
@@ -25,10 +23,9 @@ describe('Auth + Projects (e2e)', () => {
   };
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule =
-      await Test.createTestingModule({
-        imports: [AppModule],
-      }).compile();
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
 
     app = moduleFixture.createNestApplication();
 
@@ -51,9 +48,7 @@ describe('Auth + Projects (e2e)', () => {
 
   it('should authenticate a user and perform project CRUD operations', async () => {
     // 1. Register user
-    const registerResponse = await request(
-      app.getHttpServer(),
-    )
+    const registerResponse = await request(app.getHttpServer())
       .post('/auth/register')
       .send(testUser)
       .expect(201);
@@ -65,9 +60,7 @@ describe('Auth + Projects (e2e)', () => {
       email: testUser.email,
     });
 
-    expect(registerResponse.body).not.toHaveProperty(
-      'password',
-    );
+    expect(registerResponse.body).not.toHaveProperty('password');
 
     // Registration intentionally creates users as MEMBER.
     // Promote the test user to ADMIN for this E2E workflow.
@@ -81,9 +74,7 @@ describe('Auth + Projects (e2e)', () => {
     });
 
     // 2. Login and receive access token
-    const loginResponse = await request(
-      app.getHttpServer(),
-    )
+    const loginResponse = await request(app.getHttpServer())
       .post('/auth/login')
       .send({
         email: testUser.email,
@@ -91,7 +82,7 @@ describe('Auth + Projects (e2e)', () => {
       })
       .expect(200);
 
-    accessToken = loginResponse.body.accessToken;
+    accessToken = getAccessTokenFromCookies(loginResponse);
 
     expect(accessToken).toBeDefined();
 
@@ -101,9 +92,7 @@ describe('Auth + Projects (e2e)', () => {
     });
 
     // 3. Create project using authenticated user
-    const createResponse = await request(
-      app.getHttpServer(),
-    )
+    const createResponse = await request(app.getHttpServer())
       .post('/projects')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({
@@ -124,9 +113,7 @@ describe('Auth + Projects (e2e)', () => {
     expect(projectId).toBeDefined();
 
     // 4. Read project
-    const getResponse = await request(
-      app.getHttpServer(),
-    )
+    const getResponse = await request(app.getHttpServer())
       .get(`/projects/${projectId}`)
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
@@ -138,9 +125,7 @@ describe('Auth + Projects (e2e)', () => {
     });
 
     // 5. Update project
-    const updateResponse = await request(
-      app.getHttpServer(),
-    )
+    const updateResponse = await request(app.getHttpServer())
       .patch(`/projects/${projectId}`)
       .set('Authorization', `Bearer ${accessToken}`)
       .send({
@@ -154,9 +139,7 @@ describe('Auth + Projects (e2e)', () => {
     });
 
     // 6. Delete project
-    const deleteResponse = await request(
-      app.getHttpServer(),
-    )
+    const deleteResponse = await request(app.getHttpServer())
       .delete(`/projects/${projectId}`)
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);

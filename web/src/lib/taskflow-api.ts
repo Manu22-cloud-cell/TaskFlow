@@ -1,3 +1,5 @@
+import axios, { type AxiosRequestConfig } from 'axios';
+
 import { getAccessToken } from './auth';
 
 const baseUrl = process.env.TASKFLOW_API_URL;
@@ -12,23 +14,31 @@ export class TaskFlowApiError extends Error {
   }
 }
 
-export async function taskflowFetch<T>(path: string, init: RequestInit = {}) {
+const serverApi = axios.create({ baseURL: baseUrl });
+
+export async function taskflowFetch<T>(
+  path: string,
+  config: AxiosRequestConfig = {},
+) {
   const token = await getAccessToken();
-  const response = await fetch(`${baseUrl}${path}`, {
-    ...init,
-    headers: {
-      ...(init.body ? { 'Content-Type': 'application/json' } : {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...init.headers,
-    },
-    cache: 'no-store',
-  });
-  if (!response.ok) {
-    const body = await response.json().catch(() => null);
+
+  try {
+    const response = await serverApi.request<T>({
+      ...config,
+      url: path,
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...config.headers,
+      },
+    });
+
+    return response.data;
+  } catch (error) {
+    if (!axios.isAxiosError(error)) throw error;
+
     throw new TaskFlowApiError(
-      response.status,
-      body?.message ?? 'TaskFlow request failed',
+      error.response?.status ?? 500,
+      error.response?.data?.message ?? 'TaskFlow request failed',
     );
   }
-  return response.json() as Promise<T>;
 }

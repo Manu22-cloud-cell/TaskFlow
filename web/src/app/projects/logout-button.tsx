@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-import { clientApi } from '@/lib/client-api';
+import { logout as logoutRequest } from '@/services/client/auth.service';
 
 export function LogoutButton() {
   const router = useRouter();
@@ -13,7 +13,7 @@ export function LogoutButton() {
     setIsLoggingOut(true);
 
     try {
-      await clientApi.post('/auth/logout');
+      await logoutRequest();
     } finally {
       router.replace('/login');
       router.refresh();

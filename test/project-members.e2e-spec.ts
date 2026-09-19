@@ -1,12 +1,10 @@
-import {
-  INestApplication,
-  ValidationPipe,
-} from '@nestjs/common';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
 
 import { AppModule } from '../src/app.module.js';
+import { getAccessTokenFromCookies } from './helpers/auth.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import { UserRole } from '../src/generated/prisma/enums.js';
 
@@ -51,10 +49,9 @@ describe('Project Members (e2e)', () => {
   };
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule =
-      await Test.createTestingModule({
-        imports: [AppModule],
-      }).compile();
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
 
     app = moduleFixture.createNestApplication();
 
@@ -164,7 +161,7 @@ describe('Project Members (e2e)', () => {
       })
       .expect(200);
 
-    adminToken = response.body.accessToken;
+    adminToken = getAccessTokenFromCookies(response);
 
     expect(adminToken).toBeDefined();
   });
@@ -178,7 +175,7 @@ describe('Project Members (e2e)', () => {
       })
       .expect(200);
 
-    ownerToken = response.body.accessToken;
+    ownerToken = getAccessTokenFromCookies(response);
 
     expect(ownerToken).toBeDefined();
   });
@@ -192,7 +189,7 @@ describe('Project Members (e2e)', () => {
       })
       .expect(200);
 
-    managerToken = response.body.accessToken;
+    managerToken = getAccessTokenFromCookies(response);
 
     expect(managerToken).toBeDefined();
   });
@@ -206,7 +203,7 @@ describe('Project Members (e2e)', () => {
       })
       .expect(200);
 
-    memberToken = response.body.accessToken;
+    memberToken = getAccessTokenFromCookies(response);
 
     expect(memberToken).toBeDefined();
   });
@@ -436,9 +433,7 @@ describe('Project Members (e2e)', () => {
       })
       .expect(403);
 
-    expect(response.body.message).toBe(
-      'Project owner must remain a manager',
-    );
+    expect(response.body.message).toBe('Project owner must remain a manager');
   });
 
   // ---------------------------------------------------------
@@ -527,9 +522,7 @@ describe('Project Members (e2e)', () => {
       .set('Authorization', `Bearer ${adminToken}`)
       .expect(403);
 
-    expect(response.body.message).toBe(
-      'Project owner cannot be removed',
-    );
+    expect(response.body.message).toBe('Project owner cannot be removed');
   });
 
   // ---------------------------------------------------------
@@ -566,9 +559,7 @@ describe('Project Members (e2e)', () => {
       })
       .expect(404);
 
-    expect(response.body.message).toBe(
-      'Project member not found',
-    );
+    expect(response.body.message).toBe('Project member not found');
   });
 
   it('should return 404 when removing a non-existent project member', async () => {
@@ -577,9 +568,7 @@ describe('Project Members (e2e)', () => {
       .set('Authorization', `Bearer ${adminToken}`)
       .expect(404);
 
-    expect(response.body.message).toBe(
-      'Project member not found',
-    );
+    expect(response.body.message).toBe('Project member not found');
   });
 
   // ---------------------------------------------------------

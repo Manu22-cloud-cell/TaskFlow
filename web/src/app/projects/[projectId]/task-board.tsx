@@ -24,8 +24,12 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { TaskCard } from './task-card';
-import { clientApi, getClientApiError } from '@/lib/client-api';
+import { getClientApiError } from '@/lib/client-api';
 import type { Task, TaskStatus } from '@/lib/types';
+import {
+  moveTask as moveTaskRequest,
+  updateTaskStatus,
+} from '@/services/client/tasks.service';
 
 const columns: { status: TaskStatus; title: string }[] = [
   { status: 'TODO', title: 'To do' },
@@ -147,10 +151,7 @@ export function TaskBoard({
     setIsSaving(true);
 
     try {
-      await clientApi.patch(`/tasks/${task.id}/move`, {
-        status: targetStatus,
-        position: targetIndex,
-      });
+      await moveTaskRequest(task.id, targetStatus, targetIndex);
 
       router.refresh();
     } catch (error) {
@@ -190,9 +191,7 @@ export function TaskBoard({
     setIsSaving(true);
 
     try {
-      await clientApi.patch(`/tasks/${task.id}/status`, {
-        status: targetStatus,
-      });
+      await updateTaskStatus(task.id, targetStatus);
 
       router.refresh();
     } catch (error) {

@@ -3,7 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 
 import { CommentsSection } from './comments-section';
 import { TaskActions } from './task-actions';
-import { TaskFlowApiError, taskflowFetch } from '@/lib/taskflow-api';
+import { TaskFlowApiError } from '@/lib/taskflow-api';
 import type {
   Comment,
   Project,
@@ -12,6 +12,16 @@ import type {
   TaskActivity,
   User,
 } from '@/lib/types';
+import { getCurrentUser } from '@/services/server/auth.service';
+import {
+  getProject,
+  getProjectMembers,
+} from '@/services/server/projects.service';
+import {
+  getTask,
+  getTaskActivity,
+  getTaskComments,
+} from '@/services/server/tasks.service';
 
 export default async function TaskDetailsPage(
   context: PageProps<'/projects/[projectId]/tasks/[taskId]'>,
@@ -28,12 +38,12 @@ export default async function TaskDetailsPage(
   try {
     [project, task, comments, activity, currentUser, projectMembers] =
       await Promise.all([
-        taskflowFetch<Project>(`/projects/${projectId}`),
-        taskflowFetch<Task>(`/tasks/${taskId}`),
-        taskflowFetch<Comment[]>(`/tasks/${taskId}/comments`),
-        taskflowFetch<TaskActivity[]>(`/tasks/${taskId}/activity`),
-        taskflowFetch<User>('/auth/me'),
-        taskflowFetch<ProjectMember[]>(`/projects/${projectId}/members`),
+        getProject(projectId),
+        getTask(taskId),
+        getTaskComments(taskId),
+        getTaskActivity(taskId),
+        getCurrentUser(),
+        getProjectMembers(projectId),
       ]);
   } catch (error) {
     if (error instanceof TaskFlowApiError) {

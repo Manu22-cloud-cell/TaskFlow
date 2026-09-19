@@ -3,8 +3,9 @@
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-import { clientApi, getClientApiError } from '@/lib/client-api';
+import { getClientApiError } from '@/lib/client-api';
 import type { ProjectMember, TaskPriority, TaskStatus } from '@/lib/types';
+import { createTask as createTaskRequest } from '@/services/client/tasks.service';
 
 const statuses: { value: TaskStatus; label: string }[] = [
   { value: 'TODO', label: 'To do' },
@@ -46,7 +47,7 @@ export function CreateTaskForm({
     setIsSaving(true);
 
     try {
-      await clientApi.post('/tasks', {
+      await createTaskRequest({
         projectId,
         title: title.trim(),
         ...(description.trim() ? { description: description.trim() } : {}),

@@ -2,14 +2,16 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { UserRoleTable } from './user-role-table';
-import { TaskFlowApiError, taskflowFetch } from '@/lib/taskflow-api';
+import { TaskFlowApiError } from '@/lib/taskflow-api';
 import type { User } from '@/lib/types';
+import { getCurrentUser } from '@/services/server/auth.service';
+import { getUsers } from '@/services/server/users.service';
 
 export default async function AdminUsersPage() {
   let currentUser: User;
 
   try {
-    currentUser = await taskflowFetch<User>('/auth/me');
+    currentUser = await getCurrentUser();
   } catch (error) {
     if (error instanceof TaskFlowApiError && error.status === 401)
       redirect('/login');
@@ -18,7 +20,7 @@ export default async function AdminUsersPage() {
 
   if (currentUser.role !== 'ADMIN') redirect('/projects');
 
-  const users = await taskflowFetch<User[]>('/users');
+  const users = await getUsers();
 
   return (
     <main className="min-h-screen bg-slate-100 p-6 sm:p-10">

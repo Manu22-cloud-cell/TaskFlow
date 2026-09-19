@@ -4,6 +4,7 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 
 import { AppModule } from '../src/app.module.js';
+import { getAccessTokenFromCookies } from './helpers/auth.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import { UserRole } from '../src/generated/prisma/enums.js';
 
@@ -36,7 +37,9 @@ describe('Task board (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),
+    );
     await app.init();
     prisma = app.get(PrismaService);
   });
@@ -51,7 +54,10 @@ describe('Task board (e2e)', () => {
       .send(admin)
       .expect(201);
     adminId = adminResponse.body.id;
-    await prisma.user.update({ where: { id: adminId }, data: { role: UserRole.ADMIN } });
+    await prisma.user.update({
+      where: { id: adminId },
+      data: { role: UserRole.ADMIN },
+    });
 
     const memberResponse = await request(app.getHttpServer())
       .post('/auth/register')
@@ -63,13 +69,13 @@ describe('Task board (e2e)', () => {
       .post('/auth/login')
       .send({ email: admin.email, password: admin.password })
       .expect(200);
-    adminToken = loginResponse.body.accessToken;
+    adminToken = getAccessTokenFromCookies(loginResponse);
 
     const memberLoginResponse = await request(app.getHttpServer())
       .post('/auth/login')
       .send({ email: member.email, password: member.password })
       .expect(200);
-    memberToken = memberLoginResponse.body.accessToken;
+    memberToken = getAccessTokenFromCookies(memberLoginResponse);
   });
 
   it('lists a project board and moves a task between columns', async () => {
@@ -111,8 +117,11 @@ describe('Task board (e2e)', () => {
       total: 2,
       totalPages: 1,
     });
-    expect(boardResponse.body.data.map((task: { position: number }) => task.position))
-      .toEqual([0, 1]);
+    expect(
+      boardResponse.body.data.map(
+        (task: { position: number }) => task.position,
+      ),
+    ).toEqual([0, 1]);
 
     const movedTaskResponse = await request(app.getHttpServer())
       .patch(`/tasks/${firstTaskId}/move`)
@@ -144,9 +153,9 @@ describe('Task board (e2e)', () => {
       .set('Authorization', `Bearer ${memberToken}`)
       .expect(200);
 
-    expect(response.body.data).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: firstTaskId }),
-    ]));
+    expect(response.body.data).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: firstTaskId })]),
+    );
 
     await request(app.getHttpServer())
       .patch(`/tasks/${memberTaskId}/status`)
