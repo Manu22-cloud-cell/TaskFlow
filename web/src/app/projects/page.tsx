@@ -73,19 +73,17 @@ export default function ProjectsPage() {
   const hasFilters = Boolean(searchName || selectedStatus);
 
   return (
-    <main className="min-h-screen bg-slate-100 p-6 sm:p-10">
-      <section className="mx-auto max-w-6xl">
+    <main className="app-page">
+      <section className="app-container max-w-6xl">
         <UserRealtimeListener
           currentUserId={currentUser.id}
           onRefresh={loadProjects}
         />
-        <div className="mb-8 flex items-start justify-between gap-4">
+        <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm font-medium text-indigo-600">TaskFlow</p>
-            <h1 className="mt-1 text-3xl font-semibold text-slate-900">
-              Projects
-            </h1>
-            <p className="mt-2 text-slate-600">
+            <p className="page-kicker">Your workspace</p>
+            <h1 className="page-title">Projects</h1>
+            <p className="page-description">
               Projects you own or belong to.
             </p>
           </div>
@@ -101,32 +99,34 @@ export default function ProjectsPage() {
           initialName={searchName}
           initialStatus={selectedStatus}
         />
-        <p className="mb-4 text-sm text-slate-600">
+        <p className="mb-4 text-sm font-medium text-slate-500">
           {hasFilters
             ? `Showing ${matchingProjects.length} of ${projects.length} projects`
             : `${projects.length} ${projects.length === 1 ? 'project' : 'projects'}`}
         </p>
         {projects.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-600">
+          <div className="panel border-dashed p-10 text-center text-slate-600">
             You do not have access to any projects yet.
           </div>
         ) : matchingProjects.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-600">
+          <div className="panel border-dashed p-10 text-center text-slate-600">
             No projects match your search or selected status.
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {matchingProjects.map((project) => (
               <Link
-                className="rounded-xl bg-white p-5 shadow-sm transition hover:shadow-md"
+                className="group panel p-5 transition duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md"
                 href={`/projects/${project.id}`}
                 key={project.id}
               >
                 <div className="flex items-start justify-between gap-3">
-                  <h2 className="font-semibold text-slate-900">
+                  <h2 className="font-semibold text-slate-900 transition group-hover:text-indigo-700">
                     {project.name}
                   </h2>
-                  <span className="rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-600">
+                  <span
+                    className={`status-pill ${getStatusClass(project.status)}`}
+                  >
                     {labels[project.status]}
                   </span>
                 </div>
@@ -147,10 +147,14 @@ export default function ProjectsPage() {
 
 function ProjectsState({ message }: { message: string }) {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
-      <p className="rounded-xl bg-white px-6 py-4 text-sm text-slate-600 shadow-sm">
+    <main className="app-page flex min-h-screen items-center justify-center p-6">
+      <p className="panel px-6 py-4 text-sm text-slate-600">
         {message}
       </p>
     </main>
   );
+}
+
+function getStatusClass(status: ProjectStatus) {
+  return `status-${status.toLowerCase()}`;
 }

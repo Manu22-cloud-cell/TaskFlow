@@ -38,14 +38,14 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
+    <main className="app-page flex min-h-screen items-center justify-center p-5">
       <form
-        className="w-full max-w-md space-y-5 rounded-xl bg-white p-8 shadow-sm"
+        className="panel w-full max-w-md space-y-5 p-7 sm:p-9"
         onSubmit={register}
       >
         <div>
-          <p className="text-sm font-medium text-indigo-600">TaskFlow</p>
-          <h1 className="mt-1 text-2xl font-semibold text-slate-900">
+          <p className="page-kicker">Get started</p>
+          <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
             Create your account
           </h1>
           <p className="mt-2 text-sm text-slate-600">
@@ -56,7 +56,7 @@ export default function RegisterPage() {
           Name
           <input
             autoComplete="name"
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+            className="form-control mt-1.5"
             onChange={(event) => setName(event.target.value)}
             required
             value={name}
@@ -66,7 +66,7 @@ export default function RegisterPage() {
           Email
           <input
             autoComplete="email"
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+            className="form-control mt-1.5"
             onChange={(event) => setEmail(event.target.value)}
             required
             type="email"
@@ -77,7 +77,7 @@ export default function RegisterPage() {
           Password
           <input
             autoComplete="new-password"
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+            className="form-control mt-1.5"
             minLength={8}
             onChange={(event) => setPassword(event.target.value)}
             required
@@ -89,7 +89,7 @@ export default function RegisterPage() {
           Confirm password
           <input
             autoComplete="new-password"
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+            className="form-control mt-1.5"
             minLength={8}
             onChange={(event) => setConfirmPassword(event.target.value)}
             required
@@ -103,7 +103,7 @@ export default function RegisterPage() {
           </p>
         )}
         <button
-          className="w-full rounded-md bg-indigo-600 px-4 py-2 font-medium text-white disabled:bg-indigo-300"
+          className="button-primary w-full"
           disabled={isSubmitting}
           type="submit"
         >

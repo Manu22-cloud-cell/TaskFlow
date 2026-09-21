@@ -89,8 +89,8 @@ export default function TaskDetailsPage() {
     );
 
   return (
-    <main className="min-h-screen bg-slate-100 p-6 sm:p-10">
-      <section className="mx-auto max-w-6xl">
+    <main className="app-page">
+      <section className="app-container max-w-6xl">
         <ProjectRealtimeListener
           currentUserId={currentUser.id}
           includeCommentEvents
@@ -98,16 +98,16 @@ export default function TaskDetailsPage() {
           projectId={project.id}
         />
         <Link
-          className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+          className="inline-flex items-center rounded-lg text-sm font-semibold text-indigo-600 transition hover:text-indigo-800"
           href={`/projects/${project.id}`}
         >
           ← Back to {project.name}
         </Link>
 
         <div className="mt-5 grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <section className="rounded-xl bg-white p-6 shadow-sm">
-            <p className="text-sm font-medium text-indigo-600">Task</p>
-            <h1 className="mt-1 text-3xl font-semibold text-slate-900">
+          <section className="panel p-6 sm:p-7">
+            <p className="page-kicker">Task</p>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
               {task.title}
             </h1>
             <p className="mt-5 whitespace-pre-wrap text-slate-700">
@@ -136,8 +136,8 @@ export default function TaskDetailsPage() {
 
 function TaskState({ message }: { message: string }) {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
-      <p className="rounded-xl bg-white px-6 py-4 text-sm text-slate-600 shadow-sm">
+    <main className="app-page flex min-h-screen items-center justify-center p-6">
+      <p className="panel px-6 py-4 text-sm text-slate-600">
         {message}
       </p>
     </main>
@@ -175,7 +175,7 @@ function DetailItem({ label, value }: { label: string; value: string }) {
 
 function ActivityTimeline({ activity }: { activity: TaskActivity[] }) {
   return (
-    <aside className="rounded-xl bg-white p-5 shadow-sm">
+    <aside className="panel p-5 sm:p-6">
       <h2 className="text-lg font-semibold text-slate-900">Activity</h2>
 
       {activity.length === 0 ? (

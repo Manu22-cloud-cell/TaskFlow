@@ -46,7 +46,7 @@ export function BoardFilters({ members }: { members: ProjectMember[] }) {
   );
 
   return (
-    <section className="mb-6 rounded-xl bg-white p-4 shadow-sm">
+    <section className="panel mb-6 p-4">
       <div className="flex flex-wrap items-end gap-3">
         <FilterSelect
           label="Status"
@@ -72,7 +72,7 @@ export function BoardFilters({ members }: { members: ProjectMember[] }) {
         <label className="text-sm font-medium text-slate-700">
           Due date
           <input
-            className="mt-1 block rounded-md border border-slate-300 px-3 py-2 text-sm font-normal"
+            className="form-control mt-1.5 block text-sm font-normal"
             onChange={(event) => updateFilter('dueDate', event.target.value)}
             type="date"
             value={searchParams.get('dueDate') ?? ''}
@@ -80,7 +80,7 @@ export function BoardFilters({ members }: { members: ProjectMember[] }) {
         </label>
         {hasFilters && (
           <button
-            className="pb-2 text-sm font-medium text-indigo-600 hover:text-indigo-800"
+            className="button-secondary min-h-0 py-2"
             onClick={clearFilters}
             type="button"
           >
@@ -107,7 +107,7 @@ function FilterSelect({
     <label className="text-sm font-medium text-slate-700">
       {label}
       <select
-        className="mt-1 block rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-normal"
+        className="form-control mt-1.5 block text-sm font-normal"
         onChange={(event) => onChange(event.target.value)}
         value={value}
       >

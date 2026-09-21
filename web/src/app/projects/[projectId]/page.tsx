@@ -100,23 +100,21 @@ export default function ProjectBoardPage() {
     currentUser.role === 'ADMIN' || project.ownerId === currentUser.id;
 
   return (
-    <main className="min-h-screen bg-slate-100 p-6 sm:p-10">
-      <section className="mx-auto max-w-[1600px]">
+    <main className="app-page">
+      <section className="app-container max-w-[1600px]">
         <ProjectRealtimeListener
           currentUserId={currentUser.id}
           onRefresh={loadBoard}
           projectId={project.id}
         />
-        <header className="mb-8">
-          <p className="text-sm font-medium text-indigo-600">Project board</p>
-          <h1 className="mt-1 text-3xl font-semibold text-slate-900">
-            {project.name}
-          </h1>
-          <p className="mt-2 text-slate-600">
+        <header className="mb-8 rounded-2xl border border-indigo-100 bg-white/80 p-5 shadow-sm sm:p-7">
+          <p className="page-kicker">Project board</p>
+          <h1 className="page-title">{project.name}</h1>
+          <p className="page-description max-w-3xl">
             {project.description ?? 'No project description provided.'}
           </p>
           {canManageTasks && (
-            <div className="mt-4 flex flex-wrap gap-3">
+            <div className="mt-6 flex flex-wrap gap-3">
               <CreateTaskForm members={projectMembers} projectId={project.id} />
               <ProjectSettings canDelete={canDeleteProject} project={project} />
             </div>
@@ -135,7 +133,7 @@ export default function ProjectBoardPage() {
         />
 
         {tasks.length === 0 && (
-          <p className="mt-6 rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-600">
+          <p className="panel mt-6 border-dashed p-8 text-center text-sm text-slate-600">
             No tasks match the selected filters.
           </p>
         )}
@@ -146,7 +144,7 @@ export default function ProjectBoardPage() {
         />
 
         {canManageTasks && (
-          <div className="mt-6 max-w-xl">
+          <div className="mt-8 max-w-xl">
             <ProjectMembersPanel
               availableUsers={availableUsers}
               members={projectMembers}
@@ -162,8 +160,8 @@ export default function ProjectBoardPage() {
 
 function BoardState({ message }: { message: string }) {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
-      <p className="rounded-xl bg-white px-6 py-4 text-sm text-slate-600 shadow-sm">
+    <main className="app-page flex min-h-screen items-center justify-center p-6">
+      <p className="panel px-6 py-4 text-sm text-slate-600">
         {message}
       </p>
     </main>

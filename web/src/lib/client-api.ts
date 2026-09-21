@@ -1,5 +1,7 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios';
 
+import { toast } from '@/features/ui/components/toast-provider';
+
 const baseURL = process.env.NEXT_PUBLIC_TASKFLOW_API_URL;
 
 if (!baseURL) {
@@ -64,6 +66,21 @@ clientApi.interceptors.response.use(
   },
 );
 
+clientApi.interceptors.response.use(
+  (response) => response,
+  (error: unknown) => {
+    const isUnexpectedFailure =
+      axios.isAxiosError(error) &&
+      (!error.response || error.response.status >= 500);
+
+    if (isUnexpectedFailure) {
+      toast.error(getClientApiError(error));
+    }
+
+    return Promise.reject(error);
+  },
+);
+
 type ApiErrorResponse = {
   message?: string | string[];
 };
@@ -76,5 +93,10 @@ export function getClientApiError(
 
   const message = error.response?.data?.message;
 
-  return Array.isArray(message) ? message.join(', ') : (message ?? fallback);
+  if (Array.isArray(message)) return message.join(', ');
+  if (message) return message;
+
+  return error.request
+    ? 'Unable to connect to TaskFlow. Please try again.'
+    : fallback;
 }

@@ -78,7 +78,7 @@ export function ProjectSettings({
   if (!isOpen) {
     return (
       <button
-        className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+        className="button-secondary"
         onClick={() => setIsOpen(true)}
         type="button"
       >
@@ -88,8 +88,8 @@ export function ProjectSettings({
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-4">
-      <section className="w-full max-w-xl rounded-xl bg-white p-6 shadow-xl">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4 backdrop-blur-sm">
+      <section className="panel w-full max-w-xl p-6 shadow-2xl">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold text-slate-900">
@@ -113,7 +113,7 @@ export function ProjectSettings({
           <label className="block text-sm font-medium text-slate-700">
             Project name
             <input
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 font-normal"
+              className="form-control mt-1.5 font-normal"
               onChange={(event) => setName(event.target.value)}
               value={name}
             />
@@ -121,7 +121,7 @@ export function ProjectSettings({
           <label className="block text-sm font-medium text-slate-700">
             Description
             <textarea
-              className="mt-1 min-h-24 w-full rounded-md border border-slate-300 px-3 py-2 font-normal"
+              className="form-control mt-1.5 min-h-24 font-normal"
               onChange={(event) => setDescription(event.target.value)}
               value={description}
             />
@@ -129,7 +129,7 @@ export function ProjectSettings({
           <label className="block text-sm font-medium text-slate-700">
             Status
             <select
-              className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 font-normal"
+              className="form-control mt-1.5 font-normal"
               onChange={(event) =>
                 setStatus(event.target.value as ProjectStatus)
               }
@@ -149,7 +149,7 @@ export function ProjectSettings({
         <div className="mt-6 flex items-center justify-between gap-3">
           {canDelete ? (
             <button
-              className="text-sm font-medium text-red-600 hover:text-red-800 disabled:opacity-60"
+              className="button-danger"
               disabled={isSaving}
               onClick={deleteProject}
               type="button"
@@ -160,7 +160,7 @@ export function ProjectSettings({
             <span />
           )}
           <button
-            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+            className="button-primary"
             disabled={isSaving || !name.trim()}
             onClick={saveProject}
             type="button"

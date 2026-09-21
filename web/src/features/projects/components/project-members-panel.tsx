@@ -83,13 +83,13 @@ export function ProjectMembersPanel({
   }
 
   return (
-    <section className="rounded-xl bg-white p-5 shadow-sm">
+    <section className="panel p-5 sm:p-6">
       <h2 className="text-lg font-semibold text-slate-900">Project members</h2>
 
       {candidates.length > 0 && (
         <div className="mt-4 flex gap-2">
           <select
-            className="min-w-0 flex-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
+            className="form-control min-w-0 flex-1 text-sm"
             onChange={(event) => setSelectedUserId(event.target.value)}
             value={selectedUserId}
           >
@@ -101,7 +101,7 @@ export function ProjectMembersPanel({
             ))}
           </select>
           <button
-            className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
+            className="button-primary px-3"
             disabled={isSaving || !selectedUserId}
             onClick={addMember}
             type="button"

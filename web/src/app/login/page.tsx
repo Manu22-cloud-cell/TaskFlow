@@ -28,14 +28,14 @@ export default function LoginPage() {
     }
   }
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
+    <main className="app-page flex min-h-screen items-center justify-center p-5">
       <form
-        className="w-full max-w-md space-y-6 rounded-xl bg-white p-8 shadow-sm"
+        className="panel w-full max-w-md space-y-6 p-7 sm:p-9"
         onSubmit={submit}
       >
         <div>
-          <p className="text-sm font-medium text-indigo-600">TaskFlow</p>
-          <h1 className="mt-1 text-2xl font-semibold text-slate-900">
+          <p className="page-kicker">Welcome back</p>
+          <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
             Sign in to your workspace
           </h1>
           <p className="mt-2 text-sm text-slate-600">
@@ -51,7 +51,7 @@ export default function LoginPage() {
         <label className="block text-sm font-medium text-slate-700">
           Email
           <input
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+            className="form-control mt-1.5"
             type="email"
             autoComplete="email"
             value={email}
@@ -62,7 +62,7 @@ export default function LoginPage() {
         <label className="block text-sm font-medium text-slate-700">
           Password
           <input
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+            className="form-control mt-1.5"
             type="password"
             autoComplete="current-password"
             value={password}
@@ -79,7 +79,7 @@ export default function LoginPage() {
           </p>
         )}
         <button
-          className="w-full rounded-md bg-indigo-600 px-4 py-2 font-medium text-white disabled:bg-indigo-300"
+          className="button-primary w-full"
           disabled={loading}
           type="submit"
         >

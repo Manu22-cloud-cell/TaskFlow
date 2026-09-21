@@ -20,35 +20,42 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   if (!user) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
-        <p className="text-sm text-slate-600">Loading your workspace…</p>
+      <main className="app-page flex min-h-screen items-center justify-center p-6">
+        <p className="panel px-5 py-3 text-sm text-slate-600">
+          Loading your workspace…
+        </p>
       </main>
     );
   }
 
   return (
     <RealtimeNotificationProvider>
-      <header className="border-b border-slate-200 bg-white">
-        <nav className="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-3 sm:px-10">
+      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur">
+        <nav className="mx-auto flex max-w-[1600px] items-center justify-between px-5 py-3 sm:px-8">
           <Link
-            className="text-lg font-semibold text-indigo-700"
+            className="flex items-center gap-2 text-lg font-bold tracking-tight text-slate-900"
             href="/projects"
           >
+            <span className="grid size-8 place-items-center rounded-lg bg-indigo-600 text-sm text-white shadow-sm">
+              T
+            </span>
             TaskFlow
           </Link>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-5">
             {user.role === 'ADMIN' && (
               <Link
-                className="text-sm font-medium text-slate-600 hover:text-indigo-700"
+                className="hidden text-sm font-semibold text-slate-600 transition hover:text-indigo-700 sm:block"
                 href="/admin/users"
               >
                 Admin
               </Link>
             )}
-            <div className="text-right text-sm">
-              <p className="font-medium text-slate-800">{user.name}</p>
-              <p className="text-xs text-slate-500">{formatRole(user.role)}</p>
+            <div className="hidden text-right text-sm sm:block">
+              <p className="font-semibold text-slate-800">{user.name}</p>
+              <p className="text-xs font-medium text-slate-500">
+                {formatRole(user.role)}
+              </p>
             </div>
             <LogoutButton />
           </div>

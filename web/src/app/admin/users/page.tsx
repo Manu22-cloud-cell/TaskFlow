@@ -48,21 +48,17 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 p-6 sm:p-10">
-      <section className="mx-auto max-w-5xl">
+    <main className="app-page">
+      <section className="app-container max-w-5xl">
         <Link
-          className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+          className="text-sm font-semibold text-indigo-600 hover:text-indigo-800"
           href="/projects"
         >
           ← Back to projects
         </Link>
-        <p className="mt-6 text-sm font-medium text-indigo-600">
-          Administration
-        </p>
-        <h1 className="mt-1 text-3xl font-semibold text-slate-900">
-          User management
-        </h1>
-        <p className="mt-2 text-slate-600">
+        <p className="page-kicker mt-8">Administration</p>
+        <h1 className="page-title">User management</h1>
+        <p className="page-description">
           Manage global roles. Project roles are managed inside each project.
         </p>
         <UserRoleTable
@@ -77,8 +73,8 @@ export default function AdminUsersPage() {
 
 function AdminState({ message }: { message: string }) {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
-      <p className="rounded-xl bg-white px-6 py-4 text-sm text-slate-600 shadow-sm">
+    <main className="app-page flex min-h-screen items-center justify-center p-6">
+      <p className="panel px-6 py-4 text-sm text-slate-600">
         {message}
       </p>
     </main>

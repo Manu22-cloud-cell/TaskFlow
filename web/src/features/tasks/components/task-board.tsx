@@ -224,19 +224,21 @@ export function TaskBoard({
         onDragStart={handleDragStart}
         sensors={sensors}
       >
-        <div className="grid gap-4 lg:grid-cols-4">
-          {columns.map((column) => (
-            <TaskColumn
-              canManageTasks={canManageTasks}
-              currentUserId={currentUserId}
-              isSaving={isSaving}
-              key={column.status}
-              onStatusChange={handleStatusChange}
-              status={column.status}
-              tasks={board[column.status]}
-              title={column.title}
-            />
-          ))}
+        <div className="overflow-x-auto pb-2">
+          <div className="grid min-w-[900px] gap-4 lg:grid-cols-4">
+            {columns.map((column) => (
+              <TaskColumn
+                canManageTasks={canManageTasks}
+                currentUserId={currentUserId}
+                isSaving={isSaving}
+                key={column.status}
+                onStatusChange={handleStatusChange}
+                status={column.status}
+                tasks={board[column.status]}
+                title={column.title}
+              />
+            ))}
+          </div>
         </div>
 
         <DragOverlay>
@@ -296,14 +298,16 @@ function TaskColumn({
 
   return (
     <section
-      className={`rounded-xl p-3 transition-colors ${
-        isOver ? 'bg-indigo-100 ring-2 ring-indigo-300' : 'bg-slate-200/70'
+      className={`rounded-2xl border p-3 transition-colors ${
+        isOver
+          ? 'border-indigo-300 bg-indigo-50 ring-2 ring-indigo-200'
+          : 'border-slate-200 bg-slate-100/80'
       }`}
       ref={setNodeRef}
     >
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="font-semibold text-slate-700">{title}</h2>
-        <span className="rounded-full bg-white px-2 py-0.5 text-xs text-slate-600">
+        <h2 className="text-sm font-bold text-slate-700">{title}</h2>
+        <span className="rounded-full bg-white px-2 py-1 text-xs font-semibold text-slate-500 shadow-sm">
           {tasks.length}
         </span>
       </div>
@@ -312,9 +316,9 @@ function TaskColumn({
         items={tasks.map(taskId)}
         strategy={verticalListSortingStrategy}
       >
-        <div className="min-h-24 space-y-3">
+        <div className="min-h-28 space-y-3">
           {tasks.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-slate-300 p-3 text-center text-sm text-slate-500">
+            <p className="rounded-xl border border-dashed border-slate-300 p-4 text-center text-sm text-slate-500">
               Drop tasks here
             </p>
           ) : (

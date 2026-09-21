@@ -61,7 +61,7 @@ export function CreateProjectForm({
   if (!isOpen) {
     return (
       <button
-        className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+        className="button-primary"
         onClick={() => setIsOpen(true)}
         type="button"
       >
@@ -71,9 +71,9 @@ export function CreateProjectForm({
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-4">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4 backdrop-blur-sm">
       <form
-        className="w-full max-w-xl rounded-xl bg-white p-5 shadow-xl"
+        className="panel w-full max-w-xl p-6 shadow-2xl"
         onSubmit={createProject}
       >
         <div className="flex items-start justify-between gap-4">
@@ -99,7 +99,7 @@ export function CreateProjectForm({
           <label className="text-sm font-medium text-slate-700 sm:col-span-2">
             Project name
             <input
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 font-normal outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+            className="form-control mt-1.5 font-normal"
               onChange={(event) => setName(event.target.value)}
               placeholder="Website Redesign"
               required
@@ -110,7 +110,7 @@ export function CreateProjectForm({
           <label className="text-sm font-medium text-slate-700 sm:col-span-2">
             Description
             <textarea
-              className="mt-1 min-h-24 w-full rounded-md border border-slate-300 px-3 py-2 font-normal outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+            className="form-control mt-1.5 min-h-24 font-normal"
               onChange={(event) => setDescription(event.target.value)}
               placeholder="What is this project for?"
               value={description}
@@ -120,7 +120,7 @@ export function CreateProjectForm({
           <label className="text-sm font-medium text-slate-700">
             Initial status
             <select
-              className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 font-normal"
+              className="form-control mt-1.5 font-normal"
               onChange={(event) =>
                 setStatus(event.target.value as ProjectStatus)
               }
@@ -138,7 +138,7 @@ export function CreateProjectForm({
             <label className="text-sm font-medium text-slate-700">
               Owner
               <select
-                className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 font-normal"
+                className="form-control mt-1.5 font-normal"
                 onChange={(event) => setOwnerId(event.target.value)}
                 value={ownerId}
               >
@@ -155,7 +155,7 @@ export function CreateProjectForm({
         {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
 
         <button
-          className="mt-5 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
+          className="button-primary mt-5"
           disabled={isSaving || !name.trim()}
           type="submit"
         >

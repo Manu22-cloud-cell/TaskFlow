@@ -36,7 +36,7 @@ export function UserRoleTable({
   }
 
   return (
-    <section className="mt-6 overflow-hidden rounded-xl bg-white shadow-sm">
+    <section className="panel mt-6 overflow-hidden">
       {error && (
         <p className="border-b border-red-100 bg-red-50 p-4 text-sm text-red-700">
           {error}
@@ -44,7 +44,7 @@ export function UserRoleTable({
       )}
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
-          <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+          <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
             <tr>
               <th className="px-5 py-3">User</th>
               <th className="px-5 py-3">Email</th>
@@ -60,7 +60,7 @@ export function UserRoleTable({
                 <td className="px-5 py-3 text-slate-600">{user.email}</td>
                 <td className="px-5 py-3">
                   <select
-                    className="rounded border border-slate-300 bg-white px-2 py-1"
+                    className="form-control w-auto py-1.5 text-sm"
                     disabled={
                       savingUserId === user.id || user.id === currentUserId
                     }
