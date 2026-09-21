@@ -10,9 +10,11 @@ import { updateUserRole } from '@/services/client/users.service';
 export function UserRoleTable({
   users,
   currentUserId,
+  onUpdated,
 }: {
   users: User[];
   currentUserId: number;
+  onUpdated?: () => void;
 }) {
   const router = useRouter();
   const [savingUserId, setSavingUserId] = useState<number | null>(null);
@@ -24,6 +26,7 @@ export function UserRoleTable({
 
     try {
       await updateUserRole(userId, role);
+      onUpdated?.();
       router.refresh();
     } catch (error) {
       setError(getClientApiError(error, 'Unable to update the user role.'));

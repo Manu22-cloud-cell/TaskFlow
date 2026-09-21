@@ -1,14 +1,17 @@
-import Link from 'next/link';
-import { redirect } from 'next/navigation';
+'use client';
 
-import type { Project, ProjectStatus, User, UserSummary } from '@/lib/types';
+import Link from 'next/link';
+import { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+
 import { CreateProjectForm } from '@/features/projects/components/create-project-form';
 import { ProjectFilters } from '@/features/projects/components/project-filters';
 import { UserRealtimeListener } from '@/features/realtime/components/user-realtime-listener';
-import { getCurrentUser } from '@/services/server/auth.service';
-import { getProjects } from '@/services/server/projects.service';
-import { getUserSummaries } from '@/services/server/users.service';
-import { TaskFlowApiError } from '@/lib/taskflow-api';
+import { getClientApiError } from '@/lib/client-api';
+import type { Project, ProjectStatus, User, UserSummary } from '@/lib/types';
+import { getCurrentUser } from '@/services/client/auth.service';
+import { getProjects } from '@/services/client/projects.service';
+import { getUserSummaries } from '@/services/client/users.service';
 
 const labels: Record<Project['status'], string> = {
   PLANNING: 'Planning',
@@ -16,41 +19,47 @@ const labels: Record<Project['status'], string> = {
   COMPLETED: 'Completed',
   ARCHIVED: 'Archived',
 };
-function getProjectStatus(value: string | string[] | undefined) {
-  if (typeof value !== 'string') return '';
 
-  return value in labels ? (value as ProjectStatus) : '';
+function getProjectStatus(value: string | null) {
+  return value && value in labels ? (value as ProjectStatus) : '';
 }
 
-export default async function ProjectsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{
-    name?: string | string[];
-    status?: string | string[];
-  }>;
-}) {
-  const filters = await searchParams;
-  const searchName =
-    typeof filters.name === 'string' ? filters.name.trim() : '';
-  const selectedStatus = getProjectStatus(filters.status);
-  let projects: Project[];
-  let currentUser: User;
-  let owners: UserSummary[] = [];
+export default function ProjectsPage() {
+  const searchParams = useSearchParams();
+  const searchName = searchParams.get('name')?.trim() ?? '';
+  const selectedStatus = getProjectStatus(searchParams.get('status'));
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [owners, setOwners] = useState<UserSummary[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  try {
-    [projects, currentUser] = await Promise.all([
-      getProjects(),
-      getCurrentUser(),
-    ]);
+  const loadProjects = useCallback(async () => {
+    setError(null);
 
-    if (currentUser.role === 'ADMIN') {
-      owners = await getUserSummaries();
+    try {
+      const [projectResponse, userResponse] = await Promise.all([
+        getProjects(),
+        getCurrentUser(),
+      ]);
+
+      setProjects(projectResponse);
+      setCurrentUser(userResponse);
+      setOwners(userResponse.role === 'ADMIN' ? await getUserSummaries() : []);
+    } catch (error) {
+      setError(getClientApiError(error, 'Unable to load projects.'));
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    if (error instanceof TaskFlowApiError && error.status === 401)
-      redirect('/login');
-    throw error;
+  }, []);
+
+  useEffect(() => {
+    void Promise.resolve().then(loadProjects);
+  }, [loadProjects]);
+
+  if (isLoading) return <ProjectsState message="Loading projects…" />;
+  if (error || !currentUser) {
+    return <ProjectsState message={error ?? 'Unable to load projects.'} />;
   }
 
   const matchingProjects = projects.filter((project) => {
@@ -66,7 +75,10 @@ export default async function ProjectsPage({
   return (
     <main className="min-h-screen bg-slate-100 p-6 sm:p-10">
       <section className="mx-auto max-w-6xl">
-        <UserRealtimeListener currentUserId={currentUser.id} />
+        <UserRealtimeListener
+          currentUserId={currentUser.id}
+          onRefresh={loadProjects}
+        />
         <div className="mb-8 flex items-start justify-between gap-4">
           <div>
             <p className="text-sm font-medium text-indigo-600">TaskFlow</p>
@@ -78,7 +90,11 @@ export default async function ProjectsPage({
             </p>
           </div>
           {currentUser.role !== 'MEMBER' && (
-            <CreateProjectForm currentUser={currentUser} owners={owners} />
+            <CreateProjectForm
+              currentUser={currentUser}
+              onCreated={loadProjects}
+              owners={owners}
+            />
           )}
         </div>
         <ProjectFilters
@@ -115,7 +131,7 @@ export default async function ProjectsPage({
                   </span>
                 </div>
                 <p className="mt-3 line-clamp-2 text-sm text-slate-600">
-                  {project.description ?? 'No description provided.'}
+                  {project.description ?? 'No project description provided.'}
                 </p>
                 <p className="mt-4 text-xs text-slate-500">
                   Owner: {project.owner.name}
@@ -125,6 +141,16 @@ export default async function ProjectsPage({
           </div>
         )}
       </section>
+    </main>
+  );
+}
+
+function ProjectsState({ message }: { message: string }) {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
+      <p className="rounded-xl bg-white px-6 py-4 text-sm text-slate-600 shadow-sm">
+        {message}
+      </p>
     </main>
   );
 }

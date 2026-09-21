@@ -1,10 +1,13 @@
-import Link from 'next/link';
-import { notFound, redirect } from 'next/navigation';
+'use client';
 
+import Link from 'next/link';
+import { useCallback, useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
+
+import { ProjectRealtimeListener } from '@/features/realtime/components/project-realtime-listener';
 import { CommentsSection } from '@/features/tasks/components/comments-section';
 import { TaskActions } from '@/features/tasks/components/task-actions';
-import { ProjectRealtimeListener } from '@/features/realtime/components/project-realtime-listener';
-import { TaskFlowApiError } from '@/lib/taskflow-api';
+import { getClientApiError } from '@/lib/client-api';
 import type {
   Comment,
   Project,
@@ -13,56 +16,68 @@ import type {
   TaskActivity,
   User,
 } from '@/lib/types';
-import { getCurrentUser } from '@/services/server/auth.service';
+import { getCurrentUser } from '@/services/client/auth.service';
 import {
   getProject,
   getProjectMembers,
-} from '@/services/server/projects.service';
+} from '@/services/client/projects.service';
 import {
   getTask,
   getTaskActivity,
   getTaskComments,
-} from '@/services/server/tasks.service';
+} from '@/services/client/tasks.service';
 
-export default async function TaskDetailsPage(
-  context: PageProps<'/tasks/[taskId]'>,
-) {
-  const { taskId } = await context.params;
+export default function TaskDetailsPage() {
+  const { taskId } = useParams<{ taskId: string }>();
+  const [project, setProject] = useState<Project | null>(null);
+  const [task, setTask] = useState<Task | null>(null);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [activity, setActivity] = useState<TaskActivity[]>([]);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [projectMembers, setProjectMembers] = useState<ProjectMember[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  let project: Project;
-  let task: Task;
-  let comments: Comment[];
-  let activity: TaskActivity[];
-  let currentUser: User;
-  let projectMembers: ProjectMember[];
+  const loadTaskDetails = useCallback(async () => {
+    setError(null);
+    setIsLoading(true);
 
-  try {
-    task = await getTask(taskId);
-  } catch (error) {
-    if (error instanceof TaskFlowApiError) {
-      if (error.status === 401) redirect('/login');
-      if (error.status === 404) notFound();
-    }
-
-    throw error;
-  }
-
-  try {
-    [project, comments, activity, currentUser, projectMembers] =
-      await Promise.all([
-        getProject(task.projectId),
+    try {
+      const taskResponse = await getTask(taskId);
+      const [
+        projectResponse,
+        commentsResponse,
+        activityResponse,
+        userResponse,
+        membersResponse,
+      ] = await Promise.all([
+        getProject(taskResponse.projectId),
         getTaskComments(taskId),
         getTaskActivity(taskId),
         getCurrentUser(),
-        getProjectMembers(task.projectId),
+        getProjectMembers(taskResponse.projectId),
       ]);
-  } catch (error) {
-    if (error instanceof TaskFlowApiError) {
-      if (error.status === 401) redirect('/login');
-      if (error.status === 404) notFound();
-    }
 
-    throw error;
+      setTask(taskResponse);
+      setProject(projectResponse);
+      setComments(commentsResponse);
+      setActivity(activityResponse);
+      setCurrentUser(userResponse);
+      setProjectMembers(membersResponse);
+    } catch (error) {
+      setError(getClientApiError(error, 'Unable to load this task.'));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [taskId]);
+
+  useEffect(() => {
+    void Promise.resolve().then(loadTaskDetails);
+  }, [loadTaskDetails]);
+
+  if (isLoading) return <TaskState message="Loading task…" />;
+  if (error || !project || !task || !currentUser) {
+    return <TaskState message={error ?? 'Task not found.'} />;
   }
 
   const canManageProject =
@@ -79,6 +94,7 @@ export default async function TaskDetailsPage(
         <ProjectRealtimeListener
           currentUserId={currentUser.id}
           includeCommentEvents
+          onRefresh={loadTaskDetails}
           projectId={project.id}
         />
         <Link
@@ -114,6 +130,16 @@ export default async function TaskDetailsPage(
           taskId={task.id}
         />
       </section>
+    </main>
+  );
+}
+
+function TaskState({ message }: { message: string }) {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
+      <p className="rounded-xl bg-white px-6 py-4 text-sm text-slate-600 shadow-sm">
+        {message}
+      </p>
     </main>
   );
 }

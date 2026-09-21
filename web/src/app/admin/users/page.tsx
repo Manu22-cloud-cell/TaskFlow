@@ -1,26 +1,51 @@
+'use client';
+
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 import { UserRoleTable } from './user-role-table';
-import { TaskFlowApiError } from '@/lib/taskflow-api';
+import { getClientApiError } from '@/lib/client-api';
 import type { User } from '@/lib/types';
-import { getCurrentUser } from '@/services/server/auth.service';
-import { getUsers } from '@/services/server/users.service';
+import { getCurrentUser } from '@/services/client/auth.service';
+import { getUsers } from '@/services/client/users.service';
 
-export default async function AdminUsersPage() {
-  let currentUser: User;
+export default function AdminUsersPage() {
+  const router = useRouter();
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  try {
-    currentUser = await getCurrentUser();
-  } catch (error) {
-    if (error instanceof TaskFlowApiError && error.status === 401)
-      redirect('/login');
-    throw error;
+  const loadUsers = useCallback(async () => {
+    setError(null);
+
+    try {
+      const user = await getCurrentUser();
+
+      if (user.role !== 'ADMIN') {
+        router.replace('/projects');
+        return;
+      }
+
+      const userList = await getUsers();
+      setCurrentUser(user);
+      setUsers(userList);
+    } catch (error) {
+      setError(getClientApiError(error, 'Unable to load users.'));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [router]);
+
+  useEffect(() => {
+    void Promise.resolve().then(loadUsers);
+  }, [loadUsers]);
+
+  if (isLoading) return <AdminState message="Loading user management…" />;
+  if (error || !currentUser) {
+    return <AdminState message={error ?? 'Unable to load users.'} />;
   }
-
-  if (currentUser.role !== 'ADMIN') redirect('/projects');
-
-  const users = await getUsers();
 
   return (
     <main className="min-h-screen bg-slate-100 p-6 sm:p-10">
@@ -40,8 +65,22 @@ export default async function AdminUsersPage() {
         <p className="mt-2 text-slate-600">
           Manage global roles. Project roles are managed inside each project.
         </p>
-        <UserRoleTable currentUserId={currentUser.id} users={users} />
+        <UserRoleTable
+          currentUserId={currentUser.id}
+          onUpdated={loadUsers}
+          users={users}
+        />
       </section>
+    </main>
+  );
+}
+
+function AdminState({ message }: { message: string }) {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
+      <p className="rounded-xl bg-white px-6 py-4 text-sm text-slate-600 shadow-sm">
+        {message}
+      </p>
     </main>
   );
 }

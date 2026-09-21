@@ -1,5 +1,10 @@
 import { clientApi } from '@/lib/client-api';
-import type { Project, ProjectStatus } from '@/lib/types';
+import type {
+  PaginatedTasks,
+  Project,
+  ProjectMember,
+  ProjectStatus,
+} from '@/lib/types';
 
 export type CreateProjectInput = {
   name: string;
@@ -7,6 +12,33 @@ export type CreateProjectInput = {
   status: ProjectStatus;
   ownerId?: number;
 };
+
+export function getProjects() {
+  return clientApi
+    .get<Project[]>('/projects')
+    .then((response) => response.data);
+}
+
+export function getProject(projectId: string | number) {
+  return clientApi
+    .get<Project>(`/projects/${projectId}`)
+    .then((response) => response.data);
+}
+
+export function getProjectMembers(projectId: string | number) {
+  return clientApi
+    .get<ProjectMember[]>(`/projects/${projectId}/members`)
+    .then((response) => response.data);
+}
+
+export function getProjectTasks(
+  projectId: string | number,
+  query: URLSearchParams,
+) {
+  return clientApi
+    .get<PaginatedTasks>(`/projects/${projectId}/tasks?${query.toString()}`)
+    .then((response) => response.data);
+}
 
 export function createProject(data: CreateProjectInput) {
   return clientApi

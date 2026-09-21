@@ -1,25 +1,29 @@
-import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import type { ReactNode } from 'react';
+'use client';
 
-import { TaskFlowApiError } from '@/lib/taskflow-api';
+import Link from 'next/link';
+import { useEffect, useState, type ReactNode } from 'react';
+
 import type { User } from '@/lib/types';
-import { getCurrentUser } from '@/services/server/auth.service';
+import { getCurrentUser } from '@/services/client/auth.service';
 import { RealtimeNotificationProvider } from '@/features/realtime/components/realtime-notification-provider';
 
 import { LogoutButton } from './logout-button';
 
-export async function AppShell({ children }: { children: ReactNode }) {
-  let user: User;
+export function AppShell({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
 
-  try {
-    user = await getCurrentUser();
-  } catch (error) {
-    if (error instanceof TaskFlowApiError && error.status === 401) {
-      redirect('/login');
-    }
+  useEffect(() => {
+    void getCurrentUser()
+      .then(setUser)
+      .catch(() => undefined);
+  }, []);
 
-    throw error;
+  if (!user) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
+        <p className="text-sm text-slate-600">Loading your workspace…</p>
+      </main>
+    );
   }
 
   return (

@@ -17,9 +17,11 @@ const statuses: { value: ProjectStatus; label: string }[] = [
 export function CreateProjectForm({
   currentUser,
   owners,
+  onCreated,
 }: {
   currentUser: User;
   owners: UserSummary[];
+  onCreated?: () => void;
 }) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
@@ -47,8 +49,8 @@ export function CreateProjectForm({
         ...(isAdmin ? { ownerId: Number(ownerId) } : {}),
       });
 
+      onCreated?.();
       router.push(`/projects/${project.id}`);
-      router.refresh();
     } catch (error) {
       setError(getClientApiError(error, 'Unable to create the project.'));
     } finally {

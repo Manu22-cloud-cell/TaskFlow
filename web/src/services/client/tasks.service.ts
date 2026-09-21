@@ -1,5 +1,11 @@
 import { clientApi } from '@/lib/client-api';
-import type { Task, TaskPriority, TaskStatus } from '@/lib/types';
+import type {
+  Comment,
+  Task,
+  TaskActivity,
+  TaskPriority,
+  TaskStatus,
+} from '@/lib/types';
 
 export type CreateTaskInput = {
   projectId: number;
@@ -18,6 +24,24 @@ export type UpdateTaskInput = {
   assignedToId: number | null;
   dueDate: string | null;
 };
+
+export function getTask(taskId: string | number) {
+  return clientApi
+    .get<Task>(`/tasks/${taskId}`)
+    .then((response) => response.data);
+}
+
+export function getTaskComments(taskId: string | number) {
+  return clientApi
+    .get<Comment[]>(`/tasks/${taskId}/comments`)
+    .then((response) => response.data);
+}
+
+export function getTaskActivity(taskId: string | number) {
+  return clientApi
+    .get<TaskActivity[]>(`/tasks/${taskId}/activity`)
+    .then((response) => response.data);
+}
 
 export function createTask(data: CreateTaskInput) {
   return clientApi.post<Task>('/tasks', data);

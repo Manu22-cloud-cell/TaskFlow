@@ -18,8 +18,10 @@ const projectListEvents = [
 
 export function UserRealtimeListener({
   currentUserId,
+  onRefresh,
 }: {
   currentUserId: number;
+  onRefresh?: () => void;
 }) {
   const router = useRouter();
   const { notify } = useRealtimeNotifications();
@@ -38,7 +40,13 @@ export function UserRealtimeListener({
     function refreshProjectList() {
       if (refreshTimer) clearTimeout(refreshTimer);
 
-      refreshTimer = setTimeout(() => router.refresh(), 100);
+      refreshTimer = setTimeout(() => {
+        if (onRefresh) {
+          onRefresh();
+        } else {
+          router.refresh();
+        }
+      }, 100);
     }
 
     function handleProjectListEvent(
@@ -62,7 +70,7 @@ export function UserRealtimeListener({
 
       socket.disconnect();
     };
-  }, [currentUserId, notify, router]);
+  }, [currentUserId, notify, onRefresh, router]);
 
   return null;
 }

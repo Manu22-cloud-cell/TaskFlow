@@ -1,4 +1,7 @@
-import { notFound, redirect } from 'next/navigation';
+'use client';
+
+import { useCallback, useEffect, useState } from 'react';
+import { useParams, useSearchParams } from 'next/navigation';
 
 import { ProjectMembersPanel } from '@/features/projects/components/project-members-panel';
 import { ProjectSettings } from '@/features/projects/components/project-settings';
@@ -7,7 +10,7 @@ import { BoardFilters } from '@/features/tasks/components/board-filters';
 import { BoardPagination } from '@/features/tasks/components/board-pagination';
 import { CreateTaskForm } from '@/features/tasks/components/create-task-form';
 import { TaskBoard } from '@/features/tasks/components/task-board';
-import { TaskFlowApiError } from '@/lib/taskflow-api';
+import { getClientApiError } from '@/lib/client-api';
 import type {
   PaginatedTasks,
   Project,
@@ -16,61 +19,74 @@ import type {
   User,
   UserSummary,
 } from '@/lib/types';
-import { getCurrentUser } from '@/services/server/auth.service';
+import { getCurrentUser } from '@/services/client/auth.service';
 import {
   getProject,
   getProjectMembers,
   getProjectTasks,
-} from '@/services/server/projects.service';
-import { getUserSummaries } from '@/services/server/users.service';
+} from '@/services/client/projects.service';
+import { getUserSummaries } from '@/services/client/users.service';
 
-export default async function ProjectBoardPage(
-  context: PageProps<'/projects/[projectId]'>,
-) {
-  const { projectId } = await context.params;
-  const searchParams = await context.searchParams;
-  const requestedPage = Number(searchParams.page);
-  const page =
-    Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
-  const taskQuery = new URLSearchParams({ page: String(page), limit: '20' });
+export default function ProjectBoardPage() {
+  const { projectId } = useParams<{ projectId: string }>();
+  const searchParams = useSearchParams();
+  const queryString = searchParams.toString();
+  const [project, setProject] = useState<Project | null>(null);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [taskMeta, setTaskMeta] = useState<PaginatedTasks['meta'] | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [projectMembers, setProjectMembers] = useState<ProjectMember[]>([]);
+  const [availableUsers, setAvailableUsers] = useState<UserSummary[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  for (const key of ['status', 'assignedToId', 'priority', 'dueDate']) {
-    const value = searchParams[key];
+  const loadBoard = useCallback(async () => {
+    const currentQuery = new URLSearchParams(queryString);
+    const requestedPage = Number(currentQuery.get('page'));
+    const page =
+      Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+    const taskQuery = new URLSearchParams({ page: String(page), limit: '20' });
 
-    if (typeof value === 'string' && value) {
-      taskQuery.set(key, value);
+    for (const key of ['status', 'assignedToId', 'priority', 'dueDate']) {
+      const value = currentQuery.get(key);
+
+      if (value) taskQuery.set(key, value);
     }
-  }
-  let project: Project;
-  let tasks: Task[];
-  let taskMeta: PaginatedTasks['meta'];
-  let currentUser: User;
-  let projectMembers: ProjectMember[];
-  let availableUsers: UserSummary[] = [];
 
-  try {
-    const [projectResponse, tasksResponse, userResponse, membersResponse] =
-      await Promise.all([
-        getProject(projectId),
-        getProjectTasks(projectId, taskQuery),
-        getCurrentUser(),
-        getProjectMembers(projectId),
-      ]);
-    project = projectResponse;
-    tasks = tasksResponse.data;
-    taskMeta = tasksResponse.meta;
-    currentUser = userResponse;
-    projectMembers = membersResponse;
+    setError(null);
+    setIsLoading(true);
 
-    if (currentUser.role !== 'MEMBER') {
-      availableUsers = await getUserSummaries();
+    try {
+      const [projectResponse, tasksResponse, userResponse, membersResponse] =
+        await Promise.all([
+          getProject(projectId),
+          getProjectTasks(projectId, taskQuery),
+          getCurrentUser(),
+          getProjectMembers(projectId),
+        ]);
+
+      setProject(projectResponse);
+      setTasks(tasksResponse.data);
+      setTaskMeta(tasksResponse.meta);
+      setCurrentUser(userResponse);
+      setProjectMembers(membersResponse);
+      setAvailableUsers(
+        userResponse.role === 'MEMBER' ? [] : await getUserSummaries(),
+      );
+    } catch (error) {
+      setError(getClientApiError(error, 'Unable to load this project.'));
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    if (error instanceof TaskFlowApiError) {
-      if (error.status === 401) redirect('/login');
-      if (error.status === 404) notFound();
-    }
-    throw error;
+  }, [projectId, queryString]);
+
+  useEffect(() => {
+    void Promise.resolve().then(loadBoard);
+  }, [loadBoard]);
+
+  if (isLoading) return <BoardState message="Loading project board…" />;
+  if (error || !project || !taskMeta || !currentUser) {
+    return <BoardState message={error ?? 'Project not found.'} />;
   }
 
   const canManageTasks =
@@ -88,6 +104,7 @@ export default async function ProjectBoardPage(
       <section className="mx-auto max-w-[1600px]">
         <ProjectRealtimeListener
           currentUserId={currentUser.id}
+          onRefresh={loadBoard}
           projectId={project.id}
         />
         <header className="mb-8">
@@ -139,6 +156,16 @@ export default async function ProjectBoardPage(
           </div>
         )}
       </section>
+    </main>
+  );
+}
+
+function BoardState({ message }: { message: string }) {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
+      <p className="rounded-xl bg-white px-6 py-4 text-sm text-slate-600 shadow-sm">
+        {message}
+      </p>
     </main>
   );
 }

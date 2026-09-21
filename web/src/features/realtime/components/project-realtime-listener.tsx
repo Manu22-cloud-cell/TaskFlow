@@ -34,10 +34,12 @@ export function ProjectRealtimeListener({
   projectId,
   currentUserId,
   includeCommentEvents = false,
+  onRefresh,
 }: {
   projectId: number;
   currentUserId: number;
   includeCommentEvents?: boolean;
+  onRefresh?: () => void;
 }) {
   const router = useRouter();
   const { notify } = useRealtimeNotifications();
@@ -56,7 +58,13 @@ export function ProjectRealtimeListener({
     function refreshPage() {
       if (refreshTimer) clearTimeout(refreshTimer);
 
-      refreshTimer = setTimeout(() => router.refresh(), 100);
+      refreshTimer = setTimeout(() => {
+        if (onRefresh) {
+          onRefresh();
+        } else {
+          router.refresh();
+        }
+      }, 100);
     }
 
     function handleRealtimeEvent(
@@ -130,7 +138,14 @@ export function ProjectRealtimeListener({
 
       socket.disconnect();
     };
-  }, [currentUserId, includeCommentEvents, notify, projectId, router]);
+  }, [
+    currentUserId,
+    includeCommentEvents,
+    notify,
+    onRefresh,
+    projectId,
+    router,
+  ]);
 
   return null;
 }
