@@ -28,6 +28,10 @@ describe('ProjectMembersService', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
+    mockProjectAccess.assertCanManageProject.mockResolvedValue({
+      id: 4,
+      name: 'Website Redesign',
+    });
     service = new ProjectMembersService(
       mockPrisma as any,
       mockProjectAccess as any,
@@ -53,6 +57,8 @@ describe('ProjectMembersService', () => {
       4,
       'project.member.added',
       2,
+      owner.sub,
+      'Website Redesign',
     );
   });
 

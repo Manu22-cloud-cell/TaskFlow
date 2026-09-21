@@ -65,6 +65,7 @@ describe('TasksService', () => {
       4,
       'task.created',
       10,
+      manager.sub,
     );
   });
 
@@ -176,6 +177,7 @@ describe('TasksService', () => {
       4,
       'task.moved',
       10,
+      manager.sub,
     );
   });
 

@@ -103,6 +103,7 @@ describe('ProjectsService', () => {
     expect(mockRealtime.emitProjectEvent).toHaveBeenCalledWith(
       10,
       'project.deleted',
+      admin.sub,
     );
   });
 });

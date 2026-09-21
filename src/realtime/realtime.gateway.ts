@@ -94,10 +94,16 @@ export class RealtimeGateway implements OnGatewayConnection {
     return { projectId: payload.projectId };
   }
 
-  emitTaskEvent(projectId: number, event: TaskRealtimeEvent, taskId: number) {
+  emitTaskEvent(
+    projectId: number,
+    event: TaskRealtimeEvent,
+    taskId: number,
+    actorId: number,
+  ) {
     this.server.to(this.projectRoom(projectId)).emit(event, {
       projectId,
       taskId,
+      actorId,
     });
   }
 
@@ -106,32 +112,50 @@ export class RealtimeGateway implements OnGatewayConnection {
     event: CommentRealtimeEvent,
     taskId: number,
     commentId: number,
+    actorId: number,
   ) {
     this.server.to(this.projectRoom(projectId)).emit(event, {
       projectId,
       taskId,
       commentId,
+      actorId,
     });
   }
 
-  emitProjectEvent(projectId: number, event: ProjectRealtimeEvent) {
-    this.server.to(this.projectRoom(projectId)).emit(event, { projectId });
+  emitProjectEvent(
+    projectId: number,
+    event: ProjectRealtimeEvent,
+    actorId: number,
+  ) {
+    this.server.to(this.projectRoom(projectId)).emit(event, {
+      projectId,
+      actorId,
+    });
   }
 
   emitProjectMemberEvent(
     projectId: number,
     event: ProjectMemberRealtimeEvent,
     userId: number,
+    actorId: number,
+    projectName: string,
   ) {
-    const payload = { projectId, userId };
+    const payload = { projectId, userId, actorId, projectName };
 
     this.server.to(this.projectRoom(projectId)).emit(event, payload);
-    this.server.to(this.userRoom(userId)).emit(event, payload);
+    if (event === 'project.member.added') {
+      this.server.to(this.userRoom(userId)).emit(event, payload);
+    }
   }
 
-  async emitProjectMemberRemoved(projectId: number, userId: number) {
+  async emitProjectMemberRemoved(
+    projectId: number,
+    userId: number,
+    actorId: number,
+    projectName: string,
+  ) {
     const event = 'project.member.removed';
-    const payload = { projectId, userId };
+    const payload = { projectId, userId, actorId, projectName };
 
     this.server.to(this.userRoom(userId)).emit(event, payload);
     await this.server

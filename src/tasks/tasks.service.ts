@@ -79,7 +79,12 @@ export class TasksService {
         type: TaskActivityType.TASK_CREATED,
       },
     });
-    this.realtime.emitTaskEvent(task.projectId, 'task.created', task.id);
+    this.realtime.emitTaskEvent(
+      task.projectId,
+      'task.created',
+      task.id,
+      requester.sub,
+    );
     return task;
   }
 
@@ -295,6 +300,7 @@ export class TasksService {
       updatedTask.projectId,
       'task.updated',
       updatedTask.id,
+      requester.sub,
     );
     return updatedTask;
   }
@@ -326,7 +332,12 @@ export class TasksService {
         metadata: { from: existingTask.status, to: task.status },
       },
     });
-    this.realtime.emitTaskEvent(task.projectId, 'task.moved', task.id);
+    this.realtime.emitTaskEvent(
+      task.projectId,
+      'task.moved',
+      task.id,
+      requester.sub,
+    );
     return task;
   }
 
@@ -367,6 +378,7 @@ export class TasksService {
       updatedTask.projectId,
       'task.updated',
       updatedTask.id,
+      requester.sub,
     );
     return updatedTask;
   }
@@ -491,6 +503,7 @@ export class TasksService {
       existingTask.projectId,
       'task.deleted',
       existingTask.id,
+      requester.sub,
     );
 
     return {

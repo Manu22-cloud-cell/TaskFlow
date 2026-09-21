@@ -101,23 +101,25 @@ describe('RealtimeGateway', () => {
   });
 
   it('emits task changes only to the affected project room', () => {
-    gateway.emitTaskEvent(12, 'task.moved', 45);
+    gateway.emitTaskEvent(12, 'task.moved', 45, 2);
 
     expect(mockServer.to).toHaveBeenCalledWith('project:12');
     expect(mockRoom.emit).toHaveBeenCalledWith('task.moved', {
       projectId: 12,
       taskId: 45,
+      actorId: 2,
     });
   });
 
   it('emits comment changes only to the affected project room', () => {
-    gateway.emitCommentEvent(12, 'comment.created', 45, 9);
+    gateway.emitCommentEvent(12, 'comment.created', 45, 9, 2);
 
     expect(mockServer.to).toHaveBeenCalledWith('project:12');
     expect(mockRoom.emit).toHaveBeenCalledWith('comment.created', {
       projectId: 12,
       taskId: 45,
       commentId: 9,
+      actorId: 2,
     });
   });
 
@@ -125,29 +127,43 @@ describe('RealtimeGateway', () => {
     const socketsLeave = jest.fn();
     mockServer.in.mockReturnValue({ socketsLeave });
 
-    await gateway.emitProjectMemberRemoved(12, 3);
+    await gateway.emitProjectMemberRemoved(12, 3, 2, 'Website Redesign');
 
     expect(mockUserRoom.emit).toHaveBeenCalledWith('project.member.removed', {
       projectId: 12,
       userId: 3,
+      actorId: 2,
+      projectName: 'Website Redesign',
     });
     expect(socketsLeave).toHaveBeenCalledWith('project:12');
     expect(mockRoom.emit).toHaveBeenCalledWith('project.member.removed', {
       projectId: 12,
       userId: 3,
+      actorId: 2,
+      projectName: 'Website Redesign',
     });
   });
 
   it('also sends member additions to the affected user', () => {
-    gateway.emitProjectMemberEvent(12, 'project.member.added', 3);
+    gateway.emitProjectMemberEvent(
+      12,
+      'project.member.added',
+      3,
+      2,
+      'Website Redesign',
+    );
 
     expect(mockRoom.emit).toHaveBeenCalledWith('project.member.added', {
       projectId: 12,
       userId: 3,
+      actorId: 2,
+      projectName: 'Website Redesign',
     });
     expect(mockUserRoom.emit).toHaveBeenCalledWith('project.member.added', {
       projectId: 12,
       userId: 3,
+      actorId: 2,
+      projectName: 'Website Redesign',
     });
   });
 });

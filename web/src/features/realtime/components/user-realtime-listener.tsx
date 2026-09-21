@@ -4,14 +4,25 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { io } from 'socket.io-client';
 
+import {
+  getRealtimeNotificationMessage,
+  type RealtimeEventPayload,
+  useRealtimeNotifications,
+} from './realtime-notification-provider';
+
 const projectListEvents = [
   'project.member.added',
   'project.member.updated',
   'project.member.removed',
 ] as const;
 
-export function UserRealtimeListener() {
+export function UserRealtimeListener({
+  currentUserId,
+}: {
+  currentUserId: number;
+}) {
   const router = useRouter();
+  const { notify } = useRealtimeNotifications();
 
   useEffect(() => {
     const apiUrl = process.env.NEXT_PUBLIC_TASKFLOW_API_URL;
@@ -30,7 +41,20 @@ export function UserRealtimeListener() {
       refreshTimer = setTimeout(() => router.refresh(), 100);
     }
 
-    projectListEvents.forEach((event) => socket.on(event, refreshProjectList));
+    function handleProjectListEvent(
+      event: string,
+      payload: RealtimeEventPayload = {},
+    ) {
+      refreshProjectList();
+
+      if (payload.actorId !== currentUserId) {
+        notify(getRealtimeNotificationMessage(event, payload, currentUserId));
+      }
+    }
+
+    projectListEvents.forEach((event) =>
+      socket.on(event, (payload) => handleProjectListEvent(event, payload)),
+    );
     socket.connect();
 
     return () => {
@@ -38,7 +62,7 @@ export function UserRealtimeListener() {
 
       socket.disconnect();
     };
-  }, [router]);
+  }, [currentUserId, notify, router]);
 
   return null;
 }

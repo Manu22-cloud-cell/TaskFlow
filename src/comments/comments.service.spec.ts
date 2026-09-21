@@ -62,6 +62,7 @@ describe('CommentsService', () => {
       'comment.created',
       task.id,
       9,
+      member.sub,
     );
   });
 
@@ -80,6 +81,7 @@ describe('CommentsService', () => {
       'comment.updated',
       task.id,
       9,
+      member.sub,
     );
   });
 
@@ -97,6 +99,7 @@ describe('CommentsService', () => {
       'comment.deleted',
       task.id,
       9,
+      member.sub,
     );
   });
 });

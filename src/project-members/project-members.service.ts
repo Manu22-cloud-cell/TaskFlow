@@ -27,7 +27,10 @@ export class ProjectMembersService {
     addProjectMemberDto: AddProjectMemberDto,
     requester: AuthenticatedUser,
   ) {
-    await this.projectAccess.assertCanManageProject(projectId, requester);
+    const project = await this.projectAccess.assertCanManageProject(
+      projectId,
+      requester,
+    );
 
     const user = await this.prisma.user.findUnique({
       where: {
@@ -63,6 +66,8 @@ export class ProjectMembersService {
       projectId,
       'project.member.added',
       membership.userId,
+      requester.sub,
+      project.name,
     );
     return membership;
   }
@@ -139,6 +144,8 @@ export class ProjectMembersService {
       projectId,
       'project.member.updated',
       membership.userId,
+      requester.sub,
+      project.name,
     );
     return membership;
   }
@@ -181,7 +188,12 @@ export class ProjectMembersService {
       },
     });
 
-    await this.realtime.emitProjectMemberRemoved(projectId, userId);
+    await this.realtime.emitProjectMemberRemoved(
+      projectId,
+      userId,
+      requester.sub,
+      project.name,
+    );
 
     return {
       message: 'Project member removed successfully',

@@ -66,7 +66,7 @@ export default async function ProjectsPage({
   return (
     <main className="min-h-screen bg-slate-100 p-6 sm:p-10">
       <section className="mx-auto max-w-6xl">
-        <UserRealtimeListener />
+        <UserRealtimeListener currentUserId={currentUser.id} />
         <div className="mb-8 flex items-start justify-between gap-4">
           <div>
             <p className="text-sm font-medium text-indigo-600">TaskFlow</p>

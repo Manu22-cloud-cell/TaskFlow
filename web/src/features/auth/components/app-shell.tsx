@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { TaskFlowApiError } from '@/lib/taskflow-api';
 import type { User } from '@/lib/types';
 import { getCurrentUser } from '@/services/server/auth.service';
+import { RealtimeNotificationProvider } from '@/features/realtime/components/realtime-notification-provider';
 
 import { LogoutButton } from './logout-button';
 
@@ -22,7 +23,7 @@ export async function AppShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <>
+    <RealtimeNotificationProvider>
       <header className="border-b border-slate-200 bg-white">
         <nav className="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-3 sm:px-10">
           <Link
@@ -43,16 +44,14 @@ export async function AppShell({ children }: { children: ReactNode }) {
             )}
             <div className="text-right text-sm">
               <p className="font-medium text-slate-800">{user.name}</p>
-              <p className="text-xs text-slate-500">
-                {formatRole(user.role)}
-              </p>
+              <p className="text-xs text-slate-500">{formatRole(user.role)}</p>
             </div>
             <LogoutButton />
           </div>
         </nav>
       </header>
       {children}
-    </>
+    </RealtimeNotificationProvider>
   );
 }
 

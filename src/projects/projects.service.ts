@@ -141,7 +141,7 @@ export class ProjectsService {
       data: updateProjectDto,
     });
 
-    this.realtime.emitProjectEvent(id, 'project.updated');
+    this.realtime.emitProjectEvent(id, 'project.updated', requester.sub);
     return updatedProject;
   }
 
@@ -154,7 +154,7 @@ export class ProjectsService {
       },
     });
 
-    this.realtime.emitProjectEvent(id, 'project.deleted');
+    this.realtime.emitProjectEvent(id, 'project.deleted', requester.sub);
 
     return {
       message: 'Project deleted successfully',

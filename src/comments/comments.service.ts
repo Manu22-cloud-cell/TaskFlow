@@ -53,6 +53,7 @@ export class CommentsService {
       'comment.created',
       taskId,
       comment.id,
+      user.sub,
     );
     return comment;
   }
@@ -79,6 +80,7 @@ export class CommentsService {
       'comment.updated',
       taskId,
       commentId,
+      user.sub,
     );
     return updatedComment;
   }
@@ -97,6 +99,7 @@ export class CommentsService {
       'comment.deleted',
       taskId,
       commentId,
+      user.sub,
     );
     return { message: 'Comment deleted successfully' };
   }

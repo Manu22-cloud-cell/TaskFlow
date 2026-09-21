@@ -4,6 +4,12 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { io } from 'socket.io-client';
 
+import {
+  getRealtimeNotificationMessage,
+  type RealtimeEventPayload,
+  useRealtimeNotifications,
+} from './realtime-notification-provider';
+
 const taskEvents = [
   'task.created',
   'task.updated',
@@ -34,6 +40,7 @@ export function ProjectRealtimeListener({
   includeCommentEvents?: boolean;
 }) {
   const router = useRouter();
+  const { notify } = useRealtimeNotifications();
 
   useEffect(() => {
     const apiUrl = process.env.NEXT_PUBLIC_TASKFLOW_API_URL;
@@ -52,11 +59,42 @@ export function ProjectRealtimeListener({
       refreshTimer = setTimeout(() => router.refresh(), 100);
     }
 
-    function leaveDeletedProject() {
+    function handleRealtimeEvent(
+      event: string,
+      payload: RealtimeEventPayload = {},
+    ) {
+      refreshPage();
+
+      if (payload.actorId !== currentUserId) {
+        notify(getRealtimeNotificationMessage(event, payload, currentUserId));
+      }
+    }
+
+    function leaveDeletedProject(payload: RealtimeEventPayload = {}) {
+      if (payload.actorId !== currentUserId) {
+        notify(
+          getRealtimeNotificationMessage(
+            'project.deleted',
+            payload,
+            currentUserId,
+          ),
+        );
+      }
+
       router.replace('/projects');
     }
 
-    function handleMemberRemoved(payload: { userId?: number }) {
+    function handleMemberRemoved(payload: RealtimeEventPayload = {}) {
+      if (payload.actorId !== currentUserId) {
+        notify(
+          getRealtimeNotificationMessage(
+            'project.member.removed',
+            payload,
+            currentUserId,
+          ),
+        );
+      }
+
       if (payload.userId === currentUserId) {
         router.replace('/projects');
         return;
@@ -69,12 +107,20 @@ export function ProjectRealtimeListener({
       socket.emit('project.join', { projectId });
     });
 
-    taskEvents.forEach((event) => socket.on(event, refreshPage));
+    taskEvents.forEach((event) =>
+      socket.on(event, (payload) => handleRealtimeEvent(event, payload)),
+    );
     if (includeCommentEvents) {
-      commentEvents.forEach((event) => socket.on(event, refreshPage));
+      commentEvents.forEach((event) =>
+        socket.on(event, (payload) => handleRealtimeEvent(event, payload)),
+      );
     }
-    projectEvents.forEach((event) => socket.on(event, refreshPage));
-    projectMemberEvents.forEach((event) => socket.on(event, refreshPage));
+    projectEvents.forEach((event) =>
+      socket.on(event, (payload) => handleRealtimeEvent(event, payload)),
+    );
+    projectMemberEvents.forEach((event) =>
+      socket.on(event, (payload) => handleRealtimeEvent(event, payload)),
+    );
     socket.on('project.deleted', leaveDeletedProject);
     socket.on('project.member.removed', handleMemberRemoved);
     socket.connect();
@@ -84,7 +130,7 @@ export function ProjectRealtimeListener({
 
       socket.disconnect();
     };
-  }, [currentUserId, includeCommentEvents, projectId, router]);
+  }, [currentUserId, includeCommentEvents, notify, projectId, router]);
 
   return null;
 }
