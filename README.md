@@ -325,6 +325,7 @@ For the frontend build, set:
 
 ```env
 NEXT_PUBLIC_TASKFLOW_API_URL=https://api.example.com
+NEXT_PUBLIC_TASKFLOW_SOCKET_URL=https://api.example.com
 ```
 
 Do not expose NestJS (`3000`), Next.js (`3001`), or PostgreSQL (`5432`) directly to the internet. Expose only Nginx on ports `80` and `443`; use a process manager such as `systemd` for both Node.js applications.

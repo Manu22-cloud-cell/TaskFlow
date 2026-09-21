@@ -46,10 +46,11 @@ export function ProjectRealtimeListener({
 
   useEffect(() => {
     const apiUrl = process.env.NEXT_PUBLIC_TASKFLOW_API_URL;
+    const socketUrl = process.env.NEXT_PUBLIC_TASKFLOW_SOCKET_URL ?? apiUrl;
 
-    if (!apiUrl) return;
+    if (!socketUrl) return;
 
-    const socket = io(`${apiUrl}/realtime`, {
+    const socket = io(`${socketUrl}/realtime`, {
       autoConnect: false,
       withCredentials: true,
     });
