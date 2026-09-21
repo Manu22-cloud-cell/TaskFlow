@@ -1,6 +1,6 @@
 # TaskFlow
 
-TaskFlow is a Jira-style task-management application with a NestJS, PostgreSQL, and Prisma API plus a Next.js frontend. It provides JWT authentication, project-scoped permissions, board-ready tasks, comments, and an activity feed.
+TaskFlow is a Jira-style collaborative task-management application. It has a NestJS, PostgreSQL, and Prisma API plus a Next.js frontend. It provides cookie-based JWT authentication, project-scoped permissions, a drag-and-drop task board, comments, activity history, realtime updates, and administration tools.
 
 ## Features
 
@@ -10,24 +10,30 @@ TaskFlow is a Jira-style task-management application with a NestJS, PostgreSQL, 
 - Board tasks with status columns, zero-based positions, filtering, pagination, and atomic drag-and-drop moves.
 - Assigned members can update the status of their own tasks.
 - Task comments and an immutable activity feed.
-- DTO validation, Prisma migrations, unit tests, and E2E tests.
+- Socket.IO realtime updates for tasks, comments, project settings, and membership changes.
+- An admin user-management screen for global role changes.
+- Centralized REST error responses, safe structured request/error logging, DTO validation, Prisma migrations, unit tests, and E2E tests.
 
 ## Stack
 
-| Technology          | Purpose                                    |
-| ------------------- | ------------------------------------------ |
-| NestJS / TypeScript | HTTP API and modular application structure |
-| PostgreSQL          | Relational database                        |
-| Prisma 7            | Typed database client and migrations       |
-| JWT / bcrypt        | Authentication and credential security     |
-| class-validator     | Request validation                         |
-| Jest / Supertest    | Unit and end-to-end tests                  |
+| Technology               | Purpose                                                    |
+| ------------------------ | ---------------------------------------------------------- |
+| NestJS / TypeScript      | REST API, WebSocket gateway, and modular backend           |
+| Next.js / React          | Client-side application and task-board interface           |
+| PostgreSQL               | Relational database                                        |
+| Prisma 7                 | Typed database client and migrations                       |
+| Socket.IO                | Realtime collaboration events                              |
+| JWT / bcrypt             | HTTP-only cookie authentication and credential security    |
+| Axios                    | Browser API client with refresh-and-retry support           |
+| class-validator          | Request validation                                         |
+| Jest / Supertest         | Unit and end-to-end tests                                  |
+| Nginx + systemd (deploy) | HTTPS reverse proxy and production process management      |
 
 ## Setup
 
 ### Prerequisites
 
-- Node.js and npm
+- Node.js 20+ and npm
 - PostgreSQL
 
 Install dependencies and create a local environment file:
@@ -49,7 +55,7 @@ PORT=3000
 CORS_ORIGIN="http://localhost:3001"
 ```
 
-Generate Prisma types, apply migrations, and start the API:
+Generate Prisma types before applying migrations, then start the API:
 
 ```bash
 npx prisma generate
@@ -59,22 +65,61 @@ npm run start:dev
 
 The API runs at `http://localhost:3000`.
 
+### Frontend setup
+
+In a second terminal, create the frontend environment file and start Next.js:
+
+```bash
+cd web
+npm install
+cp .env.example .env.local
+npm run dev -- -p 3001
+```
+
+`web/.env.local` must point to the NestJS API:
+
+```env
+NEXT_PUBLIC_TASKFLOW_API_URL=http://localhost:3000
+```
+
+Open `http://localhost:3001`. The backend must allow this browser origin:
+
+```env
+CORS_ORIGIN=http://localhost:3001
+```
+
+The frontend calls NestJS directly with Axios and `withCredentials: true`; it never stores access or refresh tokens in local storage.
+
 ## Commands
 
 ```bash
 npm run build
 npm run start:dev
+npm run start:prod
 npm run lint
 npm test -- --runInBand
 npm run test:e2e -- --runInBand
 ```
 
+Frontend commands:
+
+```bash
+cd web
+npm run dev -- -p 3001
+npm run lint
+npx tsc --noEmit
+npm run build
+```
+
 ## Architecture
 
-Each feature follows NestJS's controller → service → Prisma pattern:
+The browser talks directly to the API. Backend features follow NestJS's controller → service → Prisma pattern:
 
 ```text
-HTTP request → JWT guard → DTO validation → controller → service → Prisma → PostgreSQL
+Next.js Client Components
+  → services/client
+  → Axios client (HTTP-only cookies + refresh/retry)
+  → NestJS controller → guard → DTO validation → service → Prisma → PostgreSQL
 ```
 
 Key modules:
@@ -87,7 +132,16 @@ src/
 ├── project-members/   Project membership and scoped roles
 ├── tasks/             Board queries, task movement, and task updates
 ├── comments/          Comments and task activity feed
+├── realtime/          Socket.IO gateway and project/user rooms
+├── common/            Global HTTP exception filter and request logger
 └── prisma/            Global Prisma service
+
+web/src/
+├── app/               Next.js routes and layouts
+├── features/          Reusable UI grouped by domain
+├── services/client/   Feature-specific Axios API calls
+├── lib/               Shared Axios client and TypeScript types
+└── proxy.ts           Protected-route and refresh navigation handling
 ```
 
 `ProjectAccessService` is the central authorization boundary. It checks whether a requester can view, manage, or delete a particular project; feature services reuse it rather than duplicating permission logic.
@@ -140,6 +194,8 @@ All protected endpoints require:
 HTTP-only `taskflow_access_token` cookies. Bearer tokens are also accepted for API tools such as Postman.
 ```
 
+On login, NestJS sets a 15-minute access cookie and a 7-day refresh cookie. Axios calls `/auth/refresh` once and retries a failed request when an access token expires. Refresh tokens are rotated and their persisted hash is updated on the server.
+
 ### Authentication
 
 | Method | Route            | Description                                    |
@@ -147,6 +203,17 @@ HTTP-only `taskflow_access_token` cookies. Bearer tokens are also accepted for A
 | POST   | `/auth/register` | Register a member user                         |
 | POST   | `/auth/login`    | Set HTTP-only access and refresh-token cookies |
 | POST   | `/auth/refresh`  | Rotate the HTTP-only auth cookies              |
+| GET    | `/auth/me`       | Return the currently authenticated user        |
+| POST   | `/auth/logout`   | Revoke session and clear auth cookies          |
+
+### Users
+
+| Method           | Route        | Description                                      |
+| ---------------- | ------------ | ------------------------------------------------ |
+| GET              | `/users`     | List users (global admin or manager)             |
+| GET              | `/users/:id` | Read a user (global admin or manager)            |
+| POST             | `/users`     | Create a user (global admin)                     |
+| PATCH/DELETE     | `/users/:id` | Update global role or delete a user (admin only) |
 
 ### Projects and members
 
@@ -190,6 +257,36 @@ Move request:
 
 Activity currently records task creation, status changes, assignee changes, priority changes, due-date changes, and comments.
 
+## Realtime collaboration
+
+The API exposes the Socket.IO namespace `/realtime`. Once authenticated, a browser joins the active project room and receives task, comment, project, and membership events. The frontend reloads the affected client-side data and shows a small notification for changes made by another user.
+
+Events include:
+
+```text
+task.created | task.updated | task.moved | task.deleted
+comment.created | comment.updated | comment.deleted
+project.updated | project.deleted
+project.member.added | project.member.updated | project.member.removed
+```
+
+## Error handling and observability
+
+Services throw NestJS exceptions such as `NotFoundException`, `ForbiddenException`, and `ConflictException`. A global exception filter converts all REST failures into a consistent response:
+
+```json
+{
+  "statusCode": 404,
+  "message": "Task not found",
+  "error": "Not Found",
+  "timestamp": "2026-09-21T10:00:00.000Z",
+  "path": "/tasks/12",
+  "requestId": "8eab3d4d-..."
+}
+```
+
+Every HTTP response includes an `X-Request-Id` header. The request logger writes structured JSON with the method, path, response status, duration, request ID, and authenticated user ID when available. It intentionally excludes request bodies, query strings, cookies, authorization headers, and tokens. Unexpected errors are logged on the server; clients receive only the safe `500 Internal server error` message.
+
 ## Database migrations
 
 The schema is defined in `prisma/schema.prisma`; committed migrations are in `prisma/migrations/`. Use `npx prisma migrate deploy` for an existing database. Use `npx prisma migrate dev --name <name>` during local schema development.
@@ -197,3 +294,37 @@ The schema is defined in `prisma/schema.prisma`; committed migrations are in `pr
 ## Testing
 
 Unit tests mock Prisma and cover services, controllers, guards, and project access rules. E2E tests use the configured PostgreSQL database and cover auth, projects, membership, and board task flow.
+
+## Production deployment notes
+
+For production, deploy the frontend and API behind HTTPS. The auth cookies are marked `Secure` when `NODE_ENV=production`, so login will not work over plain HTTP.
+
+Recommended topology:
+
+```text
+Browser
+  → https://app.example.com  → Nginx → Next.js (localhost:3001)
+  → https://api.example.com  → Nginx → NestJS + Socket.IO (localhost:3000)
+                                             → PostgreSQL
+```
+
+Set the production environment values before building:
+
+```env
+NODE_ENV=production
+PORT=3000
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/taskflow?schema=public"
+JWT_SECRET="long-random-secret"
+JWT_EXPIRES_IN="15m"
+JWT_REFRESH_SECRET="different-long-random-secret"
+JWT_REFRESH_EXPIRES_IN="7d"
+CORS_ORIGIN="https://app.example.com"
+```
+
+For the frontend build, set:
+
+```env
+NEXT_PUBLIC_TASKFLOW_API_URL=https://api.example.com
+```
+
+Do not expose NestJS (`3000`), Next.js (`3001`), or PostgreSQL (`5432`) directly to the internet. Expose only Nginx on ports `80` and `443`; use a process manager such as `systemd` for both Node.js applications.
