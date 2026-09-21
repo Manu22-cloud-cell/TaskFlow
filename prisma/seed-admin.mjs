@@ -1,7 +1,9 @@
 import 'dotenv/config';
 import * as bcrypt from 'bcrypt';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '../src/generated/prisma/client.js';
+// The Prisma generator outputs TypeScript under src/. Nest compiles that
+// client to dist/, which is the JavaScript location used by this Node script.
+import { PrismaClient } from '../dist/generated/prisma/client.js';
 
 const email = process.env.INITIAL_ADMIN_EMAIL;
 const password = process.env.INITIAL_ADMIN_PASSWORD;

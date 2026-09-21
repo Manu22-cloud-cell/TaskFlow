@@ -65,6 +65,25 @@ npm run start:dev
 
 The API runs at `http://localhost:3000`.
 
+### Create the initial admin
+
+Registration creates a global `MEMBER`. To create the first global `ADMIN`, run the seed command after `npm run build`. The values below are temporary shell variables and are not written to `.env`:
+
+```bash
+read -r -p "Admin email: " ADMIN_EMAIL
+read -r -s -p "Admin password: " ADMIN_PASSWORD
+echo
+
+INITIAL_ADMIN_NAME="TaskFlow Admin" \
+INITIAL_ADMIN_EMAIL="$ADMIN_EMAIL" \
+INITIAL_ADMIN_PASSWORD="$ADMIN_PASSWORD" \
+npm run seed:admin
+
+unset ADMIN_EMAIL ADMIN_PASSWORD
+```
+
+The script creates the user if it does not exist; if it already exists, it ensures that the user has the `ADMIN` role. Store the chosen password securely.
+
 ### Frontend setup
 
 In a second terminal, create the frontend environment file and start Next.js:
