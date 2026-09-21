@@ -1,197 +1,190 @@
 import {
-    ConflictException,
-    ForbiddenException,
-    Injectable,
-    NotFoundException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
-    AuthenticatedUser,
-    ProjectAccessService,
+  AuthenticatedUser,
+  ProjectAccessService,
 } from '../projects/project-access.service.js';
 import { AddProjectMemberDto } from './dto/add-project-member.dto.js';
 import { UpdateProjectMemberDto } from './dto/update-project-member.dto.js';
+import { RealtimeGateway } from '../realtime/realtime.gateway.js';
 
 @Injectable()
 export class ProjectMembersService {
-    constructor(
-        private readonly prisma: PrismaService,
-        private readonly projectAccess: ProjectAccessService,
-    ) { }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly projectAccess: ProjectAccessService,
+    private readonly realtime: RealtimeGateway,
+  ) {}
 
-    async addMember(
-        projectId: number,
-        addProjectMemberDto: AddProjectMemberDto,
-        requester: AuthenticatedUser,
-    ) {
-        await this.projectAccess.assertCanManageProject(
-            projectId,
-            requester,
-        );
+  async addMember(
+    projectId: number,
+    addProjectMemberDto: AddProjectMemberDto,
+    requester: AuthenticatedUser,
+  ) {
+    await this.projectAccess.assertCanManageProject(projectId, requester);
 
-        const user = await this.prisma.user.findUnique({
-            where: {
-                id: addProjectMemberDto.userId,
-            },
-        });
+    const user = await this.prisma.user.findUnique({
+      where: {
+        id: addProjectMemberDto.userId,
+      },
+    });
 
-        if (!user) {
-            throw new NotFoundException('User not found');
-        }
-
-        const existingMembership =
-            await this.prisma.projectMember.findUnique({
-                where: {
-                    projectId_userId: {
-                        projectId,
-                        userId: addProjectMemberDto.userId,
-                    },
-                },
-            });
-
-        if (existingMembership) {
-            throw new ConflictException(
-                'User is already a member of this project',
-            );
-        }
-
-        return this.prisma.projectMember.create({
-            data: {
-                projectId,
-                userId: addProjectMemberDto.userId,
-            },
-        });
+    if (!user) {
+      throw new NotFoundException('User not found');
     }
 
-    async findMembers(
-        projectId: number,
-        requester: AuthenticatedUser,
-    ) {
-        await this.projectAccess.assertCanViewProject(
-            projectId,
-            requester,
-        );
+    const existingMembership = await this.prisma.projectMember.findUnique({
+      where: {
+        projectId_userId: {
+          projectId,
+          userId: addProjectMemberDto.userId,
+        },
+      },
+    });
 
-        return this.prisma.projectMember.findMany({
-            where: {
-                projectId,
-            },
-            select: {
-                id: true,
-                role: true,
-                createdAt: true,
-                updatedAt: true,
-                user: {
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true,
-                    },
-                },
-            },
-            orderBy: {
-                createdAt: 'asc',
-            },
-        });
+    if (existingMembership) {
+      throw new ConflictException('User is already a member of this project');
     }
 
-    async updateMember(
-        projectId: number,
-        userId: number,
-        updateProjectMemberDto: UpdateProjectMemberDto,
-        requester: AuthenticatedUser,
-    ) {
-        const project = await this.projectAccess.assertCanManageProject(
-            projectId,
-            requester,
-        );
+    const membership = await this.prisma.projectMember.create({
+      data: {
+        projectId,
+        userId: addProjectMemberDto.userId,
+      },
+    });
 
-        const targetMembership =
-            await this.prisma.projectMember.findUnique({
-                where: {
-                    projectId_userId: {
-                        projectId,
-                        userId,
-                    },
-                },
-            });
+    this.realtime.emitProjectMemberEvent(
+      projectId,
+      'project.member.added',
+      membership.userId,
+    );
+    return membership;
+  }
 
-        if (!targetMembership) {
-            throw new NotFoundException(
-                'Project member not found',
-            );
-        }
+  async findMembers(projectId: number, requester: AuthenticatedUser) {
+    await this.projectAccess.assertCanViewProject(projectId, requester);
 
-        const isOwnerTarget = project.ownerId === userId;
+    return this.prisma.projectMember.findMany({
+      where: {
+        projectId,
+      },
+      select: {
+        id: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+  }
 
-        if (
-            isOwnerTarget &&
-            updateProjectMemberDto.role !== 'MANAGER'
-        ) {
-            throw new ForbiddenException(
-                'Project owner must remain a manager',
-            );
-        }
+  async updateMember(
+    projectId: number,
+    userId: number,
+    updateProjectMemberDto: UpdateProjectMemberDto,
+    requester: AuthenticatedUser,
+  ) {
+    const project = await this.projectAccess.assertCanManageProject(
+      projectId,
+      requester,
+    );
 
-        return this.prisma.projectMember.update({
-            where: {
-                projectId_userId: {
-                    projectId,
-                    userId,
-                },
-            },
-            data: {
-                role: updateProjectMemberDto.role,
-            },
-        });
+    const targetMembership = await this.prisma.projectMember.findUnique({
+      where: {
+        projectId_userId: {
+          projectId,
+          userId,
+        },
+      },
+    });
+
+    if (!targetMembership) {
+      throw new NotFoundException('Project member not found');
     }
 
-    async removeMember(
-        projectId: number,
-        userId: number,
-        requester: AuthenticatedUser,
-    ) {
-        const project = await this.projectAccess.assertCanManageProject(
-            projectId,
-            requester,
-        );
+    const isOwnerTarget = project.ownerId === userId;
 
-        const targetMembership =
-            await this.prisma.projectMember.findUnique({
-                where: {
-                    projectId_userId: {
-                        projectId,
-                        userId,
-                    },
-                },
-            });
-
-        if (!targetMembership) {
-            throw new NotFoundException(
-                'Project member not found',
-            );
-        }
-
-        const isOwnerTarget = project.ownerId === userId;
-
-        if (isOwnerTarget) {
-            throw new ForbiddenException(
-                'Project owner cannot be removed',
-            );
-        }
-
-        await this.prisma.projectMember.delete({
-            where: {
-                projectId_userId: {
-                    projectId,
-                    userId,
-                },
-            },
-        });
-
-        return {
-            message: 'Project member removed successfully',
-        };
+    if (isOwnerTarget && updateProjectMemberDto.role !== 'MANAGER') {
+      throw new ForbiddenException('Project owner must remain a manager');
     }
+
+    const membership = await this.prisma.projectMember.update({
+      where: {
+        projectId_userId: {
+          projectId,
+          userId,
+        },
+      },
+      data: {
+        role: updateProjectMemberDto.role,
+      },
+    });
+
+    this.realtime.emitProjectMemberEvent(
+      projectId,
+      'project.member.updated',
+      membership.userId,
+    );
+    return membership;
+  }
+
+  async removeMember(
+    projectId: number,
+    userId: number,
+    requester: AuthenticatedUser,
+  ) {
+    const project = await this.projectAccess.assertCanManageProject(
+      projectId,
+      requester,
+    );
+
+    const targetMembership = await this.prisma.projectMember.findUnique({
+      where: {
+        projectId_userId: {
+          projectId,
+          userId,
+        },
+      },
+    });
+
+    if (!targetMembership) {
+      throw new NotFoundException('Project member not found');
+    }
+
+    const isOwnerTarget = project.ownerId === userId;
+
+    if (isOwnerTarget) {
+      throw new ForbiddenException('Project owner cannot be removed');
+    }
+
+    await this.prisma.projectMember.delete({
+      where: {
+        projectId_userId: {
+          projectId,
+          userId,
+        },
+      },
+    });
+
+    await this.realtime.emitProjectMemberRemoved(projectId, userId);
+
+    return {
+      message: 'Project member removed successfully',
+    };
+  }
 }

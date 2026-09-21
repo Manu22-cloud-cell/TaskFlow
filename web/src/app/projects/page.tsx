@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import type { Project, ProjectStatus, User, UserSummary } from '@/lib/types';
 import { CreateProjectForm } from '@/features/projects/components/create-project-form';
 import { ProjectFilters } from '@/features/projects/components/project-filters';
+import { UserRealtimeListener } from '@/features/realtime/components/user-realtime-listener';
 import { getCurrentUser } from '@/services/server/auth.service';
 import { getProjects } from '@/services/server/projects.service';
 import { getUserSummaries } from '@/services/server/users.service';
@@ -24,10 +25,14 @@ function getProjectStatus(value: string | string[] | undefined) {
 export default async function ProjectsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ name?: string | string[]; status?: string | string[] }>;
+  searchParams: Promise<{
+    name?: string | string[];
+    status?: string | string[];
+  }>;
 }) {
   const filters = await searchParams;
-  const searchName = typeof filters.name === 'string' ? filters.name.trim() : '';
+  const searchName =
+    typeof filters.name === 'string' ? filters.name.trim() : '';
   const selectedStatus = getProjectStatus(filters.status);
   let projects: Project[];
   let currentUser: User;
@@ -52,8 +57,7 @@ export default async function ProjectsPage({
     const matchesName = project.name
       .toLocaleLowerCase()
       .includes(searchName.toLocaleLowerCase());
-    const matchesStatus =
-      !selectedStatus || project.status === selectedStatus;
+    const matchesStatus = !selectedStatus || project.status === selectedStatus;
 
     return matchesName && matchesStatus;
   });
@@ -62,6 +66,7 @@ export default async function ProjectsPage({
   return (
     <main className="min-h-screen bg-slate-100 p-6 sm:p-10">
       <section className="mx-auto max-w-6xl">
+        <UserRealtimeListener />
         <div className="mb-8 flex items-start justify-between gap-4">
           <div>
             <p className="text-sm font-medium text-indigo-600">TaskFlow</p>

@@ -86,7 +86,10 @@ export default async function ProjectBoardPage(
   return (
     <main className="min-h-screen bg-slate-100 p-6 sm:p-10">
       <section className="mx-auto max-w-[1600px]">
-        <ProjectRealtimeListener projectId={project.id} />
+        <ProjectRealtimeListener
+          currentUserId={currentUser.id}
+          projectId={project.id}
+        />
         <header className="mb-8">
           <p className="text-sm font-medium text-indigo-600">Project board</p>
           <h1 className="mt-1 text-3xl font-semibold text-slate-900">

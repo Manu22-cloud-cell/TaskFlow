@@ -18,15 +18,23 @@ describe('RealtimeGateway', () => {
   const mockRoom = {
     emit: jest.fn(),
   };
+  const mockUserRoom = {
+    emit: jest.fn(),
+  };
   const mockServer = {
-    to: jest.fn(() => mockRoom),
+    to: jest.fn((room: string) =>
+      room.startsWith('user:') ? mockUserRoom : mockRoom,
+    ),
+    in: jest.fn(() => ({ socketsLeave: jest.fn() })),
   };
 
   let gateway: RealtimeGateway;
 
   beforeEach(() => {
     jest.resetAllMocks();
-    mockServer.to.mockReturnValue(mockRoom);
+    mockServer.to.mockImplementation((room: string) =>
+      room.startsWith('user:') ? mockUserRoom : mockRoom,
+    );
     gateway = new RealtimeGateway(
       mockJwtService as unknown as JwtService,
       mockConfigService as unknown as ConfigService,
@@ -43,6 +51,7 @@ describe('RealtimeGateway', () => {
       },
       data: {},
       emit: jest.fn(),
+      join: jest.fn(),
       disconnect: jest.fn(),
     };
     mockConfigService.get.mockReturnValue('test-secret');
@@ -54,6 +63,7 @@ describe('RealtimeGateway', () => {
       secret: 'test-secret',
     });
     expect(client.data).toEqual({ user });
+    expect(client.join).toHaveBeenCalledWith('user:2');
     expect(client.emit).toHaveBeenCalledWith('realtime.ready');
     expect(client.disconnect).not.toHaveBeenCalled();
   });
@@ -97,6 +107,47 @@ describe('RealtimeGateway', () => {
     expect(mockRoom.emit).toHaveBeenCalledWith('task.moved', {
       projectId: 12,
       taskId: 45,
+    });
+  });
+
+  it('emits comment changes only to the affected project room', () => {
+    gateway.emitCommentEvent(12, 'comment.created', 45, 9);
+
+    expect(mockServer.to).toHaveBeenCalledWith('project:12');
+    expect(mockRoom.emit).toHaveBeenCalledWith('comment.created', {
+      projectId: 12,
+      taskId: 45,
+      commentId: 9,
+    });
+  });
+
+  it('notifies and removes every socket for a member who loses project access', async () => {
+    const socketsLeave = jest.fn();
+    mockServer.in.mockReturnValue({ socketsLeave });
+
+    await gateway.emitProjectMemberRemoved(12, 3);
+
+    expect(mockUserRoom.emit).toHaveBeenCalledWith('project.member.removed', {
+      projectId: 12,
+      userId: 3,
+    });
+    expect(socketsLeave).toHaveBeenCalledWith('project:12');
+    expect(mockRoom.emit).toHaveBeenCalledWith('project.member.removed', {
+      projectId: 12,
+      userId: 3,
+    });
+  });
+
+  it('also sends member additions to the affected user', () => {
+    gateway.emitProjectMemberEvent(12, 'project.member.added', 3);
+
+    expect(mockRoom.emit).toHaveBeenCalledWith('project.member.added', {
+      projectId: 12,
+      userId: 3,
+    });
+    expect(mockUserRoom.emit).toHaveBeenCalledWith('project.member.added', {
+      projectId: 12,
+      userId: 3,
     });
   });
 });

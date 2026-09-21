@@ -11,7 +11,28 @@ const taskEvents = [
   'task.deleted',
 ] as const;
 
-export function ProjectRealtimeListener({ projectId }: { projectId: number }) {
+const commentEvents = [
+  'comment.created',
+  'comment.updated',
+  'comment.deleted',
+] as const;
+
+const projectEvents = ['project.updated'] as const;
+
+const projectMemberEvents = [
+  'project.member.added',
+  'project.member.updated',
+] as const;
+
+export function ProjectRealtimeListener({
+  projectId,
+  currentUserId,
+  includeCommentEvents = false,
+}: {
+  projectId: number;
+  currentUserId: number;
+  includeCommentEvents?: boolean;
+}) {
   const router = useRouter();
 
   useEffect(() => {
@@ -31,11 +52,31 @@ export function ProjectRealtimeListener({ projectId }: { projectId: number }) {
       refreshTimer = setTimeout(() => router.refresh(), 100);
     }
 
+    function leaveDeletedProject() {
+      router.replace('/projects');
+    }
+
+    function handleMemberRemoved(payload: { userId?: number }) {
+      if (payload.userId === currentUserId) {
+        router.replace('/projects');
+        return;
+      }
+
+      refreshPage();
+    }
+
     socket.on('realtime.ready', () => {
       socket.emit('project.join', { projectId });
     });
 
     taskEvents.forEach((event) => socket.on(event, refreshPage));
+    if (includeCommentEvents) {
+      commentEvents.forEach((event) => socket.on(event, refreshPage));
+    }
+    projectEvents.forEach((event) => socket.on(event, refreshPage));
+    projectMemberEvents.forEach((event) => socket.on(event, refreshPage));
+    socket.on('project.deleted', leaveDeletedProject);
+    socket.on('project.member.removed', handleMemberRemoved);
     socket.connect();
 
     return () => {
@@ -43,7 +84,7 @@ export function ProjectRealtimeListener({ projectId }: { projectId: number }) {
 
       socket.disconnect();
     };
-  }, [projectId, router]);
+  }, [currentUserId, includeCommentEvents, projectId, router]);
 
   return null;
 }

@@ -26,6 +26,14 @@ type ProjectJoinPayload = { projectId: number };
 export type TaskRealtimeEvent =
   'task.created' | 'task.updated' | 'task.moved' | 'task.deleted';
 
+export type CommentRealtimeEvent =
+  'comment.created' | 'comment.updated' | 'comment.deleted';
+
+export type ProjectRealtimeEvent = 'project.updated' | 'project.deleted';
+
+export type ProjectMemberRealtimeEvent =
+  'project.member.added' | 'project.member.updated';
+
 @Injectable()
 @WebSocketGateway({
   namespace: 'realtime',
@@ -61,6 +69,7 @@ export class RealtimeGateway implements OnGatewayConnection {
         token,
         { secret },
       );
+      await client.join(this.userRoom(client.data.user.sub));
       client.emit('realtime.ready');
     } catch {
       client.disconnect(true);
@@ -92,7 +101,50 @@ export class RealtimeGateway implements OnGatewayConnection {
     });
   }
 
+  emitCommentEvent(
+    projectId: number,
+    event: CommentRealtimeEvent,
+    taskId: number,
+    commentId: number,
+  ) {
+    this.server.to(this.projectRoom(projectId)).emit(event, {
+      projectId,
+      taskId,
+      commentId,
+    });
+  }
+
+  emitProjectEvent(projectId: number, event: ProjectRealtimeEvent) {
+    this.server.to(this.projectRoom(projectId)).emit(event, { projectId });
+  }
+
+  emitProjectMemberEvent(
+    projectId: number,
+    event: ProjectMemberRealtimeEvent,
+    userId: number,
+  ) {
+    const payload = { projectId, userId };
+
+    this.server.to(this.projectRoom(projectId)).emit(event, payload);
+    this.server.to(this.userRoom(userId)).emit(event, payload);
+  }
+
+  async emitProjectMemberRemoved(projectId: number, userId: number) {
+    const event = 'project.member.removed';
+    const payload = { projectId, userId };
+
+    this.server.to(this.userRoom(userId)).emit(event, payload);
+    await this.server
+      .in(this.userRoom(userId))
+      .socketsLeave(this.projectRoom(projectId));
+    this.server.to(this.projectRoom(projectId)).emit(event, payload);
+  }
+
   private projectRoom(projectId: number) {
     return `project:${projectId}`;
+  }
+
+  private userRoom(userId: number) {
+    return `user:${userId}`;
   }
 }

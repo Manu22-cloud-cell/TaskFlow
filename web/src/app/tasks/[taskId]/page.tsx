@@ -76,7 +76,11 @@ export default async function TaskDetailsPage(
   return (
     <main className="min-h-screen bg-slate-100 p-6 sm:p-10">
       <section className="mx-auto max-w-6xl">
-        <ProjectRealtimeListener projectId={project.id} />
+        <ProjectRealtimeListener
+          currentUserId={currentUser.id}
+          includeCommentEvents
+          projectId={project.id}
+        />
         <Link
           className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
           href={`/projects/${project.id}`}

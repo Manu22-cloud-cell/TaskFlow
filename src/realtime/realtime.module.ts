@@ -1,10 +1,10 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 import { ProjectsModule } from '../projects/projects.module.js';
 import { RealtimeGateway } from './realtime.gateway.js';
 
 @Module({
-  imports: [ProjectsModule],
+  imports: [forwardRef(() => ProjectsModule)],
   providers: [RealtimeGateway],
   exports: [RealtimeGateway],
 })
