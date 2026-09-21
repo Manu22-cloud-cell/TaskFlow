@@ -12,11 +12,17 @@ type ExceptionBody = {
   message?: string | string[];
 };
 
+type RequestWithContext = {
+  method: string;
+  path: string;
+  requestId?: string;
+};
+
 /**
  * Converts every REST API error into one predictable response shape.
  *
- * Known HttpExceptions preserve their useful message. Unexpected errors are
- * logged internally and return a safe, generic message to the client.
+ * Known 4xx HttpExceptions preserve their useful message. Every 5xx error is
+ * logged internally and returns a safe, generic message to the client.
  */
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -24,7 +30,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
   catch(exception: unknown, host: ArgumentsHost) {
     const context = host.switchToHttp();
-    const request = context.getRequest<{ method: string; url: string }>();
+    const request = context.getRequest<RequestWithContext>();
     const response = context.getResponse<{
       status: (statusCode: number) => { json: (body: unknown) => void };
     }>();
@@ -36,20 +42,32 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const body = isHttpException
       ? getExceptionBody(exception.getResponse())
       : undefined;
+    const isServerError = statusCode >= HttpStatus.INTERNAL_SERVER_ERROR;
 
-    if (!isHttpException || statusCode >= HttpStatus.INTERNAL_SERVER_ERROR) {
+    if (!isHttpException || isServerError) {
       this.logger.error(
-        `${request.method} ${request.url} failed with status ${statusCode}`,
+        JSON.stringify({
+          event: 'http_error',
+          requestId: request.requestId,
+          method: request.method,
+          path: request.path,
+          statusCode,
+        }),
         exception instanceof Error ? exception.stack : undefined,
       );
     }
 
     response.status(statusCode).json({
       statusCode,
-      message: body?.message ?? 'Internal server error',
-      error: body?.error ?? HttpStatus[statusCode],
+      message: isServerError
+        ? 'Internal server error'
+        : (body?.message ?? HttpStatus[statusCode]),
+      error: isServerError
+        ? 'Internal Server Error'
+        : (body?.error ?? HttpStatus[statusCode]),
       timestamp: new Date().toISOString(),
-      path: request.url,
+      path: request.path,
+      requestId: request.requestId,
     });
   }
 }
