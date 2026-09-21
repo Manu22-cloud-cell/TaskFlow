@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 
 import { CommentsSection } from '@/features/tasks/components/comments-section';
 import { TaskActions } from '@/features/tasks/components/task-actions';
+import { ProjectRealtimeListener } from '@/features/realtime/components/project-realtime-listener';
 import { TaskFlowApiError } from '@/lib/taskflow-api';
 import type {
   Comment,
@@ -75,6 +76,7 @@ export default async function TaskDetailsPage(
   return (
     <main className="min-h-screen bg-slate-100 p-6 sm:p-10">
       <section className="mx-auto max-w-6xl">
+        <ProjectRealtimeListener projectId={project.id} />
         <Link
           className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
           href={`/projects/${project.id}`}

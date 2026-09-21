@@ -39,8 +39,13 @@ export function clearAuthCookies(response: Response) {
 }
 
 export function getCookie(request: Request, name: string) {
-  const cookieHeader = request.headers.cookie;
+  return getCookieFromHeader(request.headers.cookie, name);
+}
 
+export function getCookieFromHeader(
+  cookieHeader: string | undefined,
+  name: string,
+) {
   if (!cookieHeader) return undefined;
 
   const cookie = cookieHeader

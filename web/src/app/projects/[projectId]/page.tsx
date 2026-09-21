@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation';
 
 import { ProjectMembersPanel } from '@/features/projects/components/project-members-panel';
 import { ProjectSettings } from '@/features/projects/components/project-settings';
+import { ProjectRealtimeListener } from '@/features/realtime/components/project-realtime-listener';
 import { BoardFilters } from '@/features/tasks/components/board-filters';
 import { BoardPagination } from '@/features/tasks/components/board-pagination';
 import { CreateTaskForm } from '@/features/tasks/components/create-task-form';
@@ -85,6 +86,7 @@ export default async function ProjectBoardPage(
   return (
     <main className="min-h-screen bg-slate-100 p-6 sm:p-10">
       <section className="mx-auto max-w-[1600px]">
+        <ProjectRealtimeListener projectId={project.id} />
         <header className="mb-8">
           <p className="text-sm font-medium text-indigo-600">Project board</p>
           <h1 className="mt-1 text-3xl font-semibold text-slate-900">
