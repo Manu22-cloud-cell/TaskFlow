@@ -1,8 +1,8 @@
 import { clientApi } from '@/lib/client-api';
 import type {
-  Comment,
+  PaginatedComments,
+  PaginatedTaskActivity,
   Task,
-  TaskActivity,
   TaskPriority,
   TaskStatus,
 } from '@/lib/types';
@@ -31,15 +31,41 @@ export function getTask(taskId: string | number) {
     .then((response) => response.data);
 }
 
-export function getTaskComments(taskId: string | number) {
+export type TaskFeedQuery = {
+  cursor?: number;
+  limit?: number;
+};
+
+function getTaskFeedQuery(query: TaskFeedQuery = {}) {
+  const params = new URLSearchParams();
+
+  if (query.cursor) params.set('cursor', String(query.cursor));
+  if (query.limit) params.set('limit', String(query.limit));
+
+  const value = params.toString();
+
+  return value ? `?${value}` : '';
+}
+
+export function getTaskComments(
+  taskId: string | number,
+  query?: TaskFeedQuery,
+) {
   return clientApi
-    .get<Comment[]>(`/tasks/${taskId}/comments`)
+    .get<PaginatedComments>(
+      `/tasks/${taskId}/comments${getTaskFeedQuery(query)}`,
+    )
     .then((response) => response.data);
 }
 
-export function getTaskActivity(taskId: string | number) {
+export function getTaskActivity(
+  taskId: string | number,
+  query?: TaskFeedQuery,
+) {
   return clientApi
-    .get<TaskActivity[]>(`/tasks/${taskId}/activity`)
+    .get<PaginatedTaskActivity>(
+      `/tasks/${taskId}/activity${getTaskFeedQuery(query)}`,
+    )
     .then((response) => response.data);
 }
 

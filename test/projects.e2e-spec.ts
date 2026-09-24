@@ -129,9 +129,13 @@ describe('Projects (e2e)', () => {
       .set('Authorization', `Bearer ${adminToken}`)
       .expect(200);
 
-    expect(Array.isArray(response.body)).toBe(true);
+    expect(Array.isArray(response.body.data)).toBe(true);
+    expect(response.body.meta).toMatchObject({
+      page: 1,
+      limit: 12,
+    });
 
-    expect(response.body).toEqual(
+    expect(response.body.data).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           id: projectId,

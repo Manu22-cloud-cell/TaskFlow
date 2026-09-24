@@ -6,6 +6,7 @@ import {
 import { ProjectMemberRole, UserRole } from '../generated/prisma/enums.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateProjectDto } from './dto/create-project.dto.js';
+import { ListProjectsDto } from './dto/list-projects.dto.js';
 import { UpdateProjectDto } from './dto/update-project.dto.js';
 import {
   AuthenticatedUser,
@@ -72,34 +73,55 @@ export class ProjectsService {
     });
   }
 
-  async findAll(requester: AuthenticatedUser) {
-    return this.prisma.project.findMany({
-      where:
-        requester.role === UserRole.ADMIN
-          ? undefined
-          : {
-              OR: [
-                { ownerId: requester.sub },
-                {
-                  members: {
-                    some: { userId: requester.sub },
-                  },
-                },
-              ],
+  async findAll(requester: AuthenticatedUser, filters: ListProjectsDto) {
+    const page = filters.page ?? 1;
+    const limit = filters.limit ?? 12;
+    const search = filters.search?.trim();
+    const where = {
+      ...(requester.role !== UserRole.ADMIN && {
+        OR: [
+          { ownerId: requester.sub },
+          {
+            members: {
+              some: { userId: requester.sub },
             },
-      include: {
-        owner: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
+          },
+        ],
+      }),
+      ...(search && {
+        name: { contains: search, mode: 'insensitive' as const },
+      }),
+      ...(filters.status && { status: filters.status }),
+    };
+
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.project.findMany({
+        where,
+        include: {
+          owner: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
           },
         },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.project.count({ where }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    };
   }
 
   async findOne(id: number, requester: AuthenticatedUser) {

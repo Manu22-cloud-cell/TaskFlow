@@ -17,7 +17,6 @@ import type {
   ProjectMember,
   Task,
   User,
-  UserSummary,
 } from '@/lib/types';
 import { getCurrentUser } from '@/services/client/auth.service';
 import {
@@ -25,7 +24,6 @@ import {
   getProjectMembers,
   getProjectTasks,
 } from '@/services/client/projects.service';
-import { getUserSummaries } from '@/services/client/users.service';
 
 export default function ProjectBoardPage() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -36,7 +34,6 @@ export default function ProjectBoardPage() {
   const [taskMeta, setTaskMeta] = useState<PaginatedTasks['meta'] | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [projectMembers, setProjectMembers] = useState<ProjectMember[]>([]);
-  const [availableUsers, setAvailableUsers] = useState<UserSummary[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -70,9 +67,6 @@ export default function ProjectBoardPage() {
       setTaskMeta(tasksResponse.meta);
       setCurrentUser(userResponse);
       setProjectMembers(membersResponse);
-      setAvailableUsers(
-        userResponse.role === 'MEMBER' ? [] : await getUserSummaries(),
-      );
     } catch (error) {
       setError(getClientApiError(error, 'Unable to load this project.'));
     } finally {
@@ -146,7 +140,6 @@ export default function ProjectBoardPage() {
         {canManageTasks && (
           <div className="mt-8 max-w-xl">
             <ProjectMembersPanel
-              availableUsers={availableUsers}
               members={projectMembers}
               ownerId={project.ownerId}
               projectId={project.id}
@@ -161,9 +154,7 @@ export default function ProjectBoardPage() {
 function BoardState({ message }: { message: string }) {
   return (
     <main className="app-page flex min-h-screen items-center justify-center p-6">
-      <p className="panel px-6 py-4 text-sm text-slate-600">
-        {message}
-      </p>
+      <p className="panel px-6 py-4 text-sm text-slate-600">{message}</p>
     </main>
   );
 }

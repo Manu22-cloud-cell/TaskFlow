@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { getClientApiError } from '@/lib/client-api';
@@ -10,35 +10,77 @@ import {
   removeProjectMember,
   updateProjectMemberRole,
 } from '@/services/client/projects.service';
+import { getUserSummaries } from '@/services/client/users.service';
 
 export function ProjectMembersPanel({
   projectId,
   ownerId,
   members,
-  availableUsers,
 }: {
   projectId: number;
   ownerId: number;
   members: ProjectMember[];
-  availableUsers: UserSummary[];
 }) {
   const router = useRouter();
-  const [selectedUserId, setSelectedUserId] = useState('');
+  const [userSearch, setUserSearch] = useState('');
+  const [userOptions, setUserOptions] = useState<UserSummary[]>([]);
+  const [selectedUser, setSelectedUser] = useState<UserSummary | null>(null);
+  const [isSearchingUsers, setIsSearchingUsers] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const memberIds = new Set(members.map((member) => member.user.id));
-  const candidates = availableUsers.filter((user) => !memberIds.has(user.id));
+  const candidates = userOptions.filter((user) => !memberIds.has(user.id));
+
+  useEffect(() => {
+    if (userSearch.trim().length < 2) {
+      return;
+    }
+
+    let isActive = true;
+    const timeout = window.setTimeout(async () => {
+      setIsSearchingUsers(true);
+
+      try {
+        const users = await getUserSummaries({
+          search: userSearch.trim(),
+          limit: 10,
+        });
+
+        if (isActive) setUserOptions(users);
+      } catch {
+        if (isActive) setUserOptions([]);
+      } finally {
+        if (isActive) setIsSearchingUsers(false);
+      }
+    }, 250);
+
+    return () => {
+      isActive = false;
+      window.clearTimeout(timeout);
+    };
+  }, [userSearch]);
+
+  function updateUserSearch(value: string) {
+    setUserSearch(value);
+
+    if (value.trim().length < 2) {
+      setUserOptions([]);
+      setIsSearchingUsers(false);
+    }
+  }
 
   async function addMember() {
-    if (!selectedUserId || isSaving) return;
+    if (!selectedUser || isSaving) return;
 
     setError(null);
     setIsSaving(true);
 
     try {
-      await addProjectMember(projectId, Number(selectedUserId));
+      await addProjectMember(projectId, selectedUser.id);
 
-      setSelectedUserId('');
+      setSelectedUser(null);
+      setUserSearch('');
+      setUserOptions([]);
       router.refresh();
     } catch (error) {
       setError(getClientApiError(error, 'Unable to add the project member.'));
@@ -86,30 +128,61 @@ export function ProjectMembersPanel({
     <section className="panel p-5 sm:p-6">
       <h2 className="text-lg font-semibold text-slate-900">Project members</h2>
 
-      {candidates.length > 0 && (
-        <div className="mt-4 flex gap-2">
-          <select
+      <div className="mt-4">
+        <label
+          className="text-sm font-medium text-slate-700"
+          htmlFor="member-search"
+        >
+          Add a member
+        </label>
+        <div className="mt-1.5 flex gap-2">
+          <input
             className="form-control min-w-0 flex-1 text-sm"
-            onChange={(event) => setSelectedUserId(event.target.value)}
-            value={selectedUserId}
-          >
-            <option value="">Select a user to add</option>
-            {candidates.map((user) => (
-              <option key={user.id} value={user.id}>
-                {user.name} ({user.email})
-              </option>
-            ))}
-          </select>
+            id="member-search"
+            onChange={(event) => updateUserSearch(event.target.value)}
+            placeholder="Search by name or email"
+            value={userSearch}
+          />
           <button
             className="button-primary px-3"
-            disabled={isSaving || !selectedUserId}
+            disabled={isSaving || !selectedUser}
             onClick={addMember}
             type="button"
           >
             Add
           </button>
         </div>
-      )}
+        <p className="mt-1 text-xs text-slate-500">
+          Type at least two characters to find users.
+        </p>
+        {selectedUser && (
+          <p className="mt-2 text-xs text-slate-600">
+            Selected: {selectedUser.name} ({selectedUser.email})
+          </p>
+        )}
+        {isSearchingUsers && (
+          <p className="mt-2 text-xs text-slate-500">Searching…</p>
+        )}
+        {candidates.length > 0 && (
+          <ul className="mt-2 max-h-32 rounded-lg border border-slate-200 p-1">
+            {candidates.map((user) => (
+              <li key={user.id}>
+                <button
+                  className="w-full rounded px-2 py-1.5 text-left text-xs hover:bg-indigo-50 hover:text-indigo-800"
+                  onClick={() => {
+                    setSelectedUser(user);
+                    setUserSearch('');
+                    setUserOptions([]);
+                  }}
+                  type="button"
+                >
+                  {user.name} ({user.email})
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
 

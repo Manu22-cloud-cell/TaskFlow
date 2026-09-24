@@ -1,6 +1,7 @@
 import { clientApi } from '@/lib/client-api';
 import type {
   PaginatedTasks,
+  PaginatedProjects,
   Project,
   ProjectMember,
   ProjectStatus,
@@ -13,9 +14,25 @@ export type CreateProjectInput = {
   ownerId?: number;
 };
 
-export function getProjects() {
+export type ListProjectsQuery = {
+  search?: string;
+  status?: ProjectStatus;
+  page?: number;
+  limit?: number;
+};
+
+export function getProjects(query: ListProjectsQuery = {}) {
+  const params = new URLSearchParams();
+
+  if (query.search) params.set('search', query.search);
+  if (query.status) params.set('status', query.status);
+  if (query.page) params.set('page', String(query.page));
+  if (query.limit) params.set('limit', String(query.limit));
+
+  const value = params.toString();
+
   return clientApi
-    .get<Project[]>('/projects')
+    .get<PaginatedProjects>(`/projects${value ? `?${value}` : ''}`)
     .then((response) => response.data);
 }
 

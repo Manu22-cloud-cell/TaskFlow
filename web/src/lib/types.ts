@@ -35,6 +35,34 @@ export type PaginatedTasks = {
   meta: { page: number; limit: number; total: number; totalPages: number };
 };
 
+export type PaginationMeta = {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+};
+
+export type PaginatedProjects = {
+  data: Project[];
+  meta: PaginationMeta;
+};
+
+export type PaginatedUsers = {
+  data: User[];
+  meta: PaginationMeta;
+};
+
+export type CursorPageMeta = {
+  limit: number;
+  nextCursor: number | null;
+  hasNextPage: boolean;
+};
+
+export type CursorPage<T> = {
+  data: T[];
+  meta: CursorPageMeta;
+};
+
 export type ProjectMember = {
   id: number;
   role: 'MANAGER' | 'MEMBER';
@@ -68,3 +96,6 @@ export type TaskActivity = {
   createdAt: string;
   actor: Pick<User, 'id' | 'name' | 'email'>;
 };
+
+export type PaginatedComments = CursorPage<Comment>;
+export type PaginatedTaskActivity = CursorPage<TaskActivity>;

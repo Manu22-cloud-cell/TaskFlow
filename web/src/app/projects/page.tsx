@@ -6,12 +6,17 @@ import { useSearchParams } from 'next/navigation';
 
 import { CreateProjectForm } from '@/features/projects/components/create-project-form';
 import { ProjectFilters } from '@/features/projects/components/project-filters';
+import { ProjectPagination } from '@/features/projects/components/project-pagination';
 import { UserRealtimeListener } from '@/features/realtime/components/user-realtime-listener';
 import { getClientApiError } from '@/lib/client-api';
-import type { Project, ProjectStatus, User, UserSummary } from '@/lib/types';
+import type {
+  PaginatedProjects,
+  Project,
+  ProjectStatus,
+  User,
+} from '@/lib/types';
 import { getCurrentUser } from '@/services/client/auth.service';
 import { getProjects } from '@/services/client/projects.service';
-import { getUserSummaries } from '@/services/client/users.service';
 
 const labels: Record<Project['status'], string> = {
   PLANNING: 'Planning',
@@ -28,9 +33,14 @@ export default function ProjectsPage() {
   const searchParams = useSearchParams();
   const searchName = searchParams.get('name')?.trim() ?? '';
   const selectedStatus = getProjectStatus(searchParams.get('status'));
+  const requestedPage = Number(searchParams.get('page'));
+  const page =
+    Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
   const [projects, setProjects] = useState<Project[]>([]);
+  const [projectMeta, setProjectMeta] = useState<
+    PaginatedProjects['meta'] | null
+  >(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [owners, setOwners] = useState<UserSummary[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -39,37 +49,34 @@ export default function ProjectsPage() {
 
     try {
       const [projectResponse, userResponse] = await Promise.all([
-        getProjects(),
+        getProjects({
+          search: searchName || undefined,
+          status: selectedStatus || undefined,
+          page,
+          limit: 12,
+        }),
         getCurrentUser(),
       ]);
 
-      setProjects(projectResponse);
+      setProjects(projectResponse.data);
+      setProjectMeta(projectResponse.meta);
       setCurrentUser(userResponse);
-      setOwners(userResponse.role === 'ADMIN' ? await getUserSummaries() : []);
     } catch (error) {
       setError(getClientApiError(error, 'Unable to load projects.'));
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [page, searchName, selectedStatus]);
 
   useEffect(() => {
     void Promise.resolve().then(loadProjects);
   }, [loadProjects]);
 
   if (isLoading) return <ProjectsState message="Loading projects…" />;
-  if (error || !currentUser) {
+  if (error || !currentUser || !projectMeta) {
     return <ProjectsState message={error ?? 'Unable to load projects.'} />;
   }
 
-  const matchingProjects = projects.filter((project) => {
-    const matchesName = project.name
-      .toLocaleLowerCase()
-      .includes(searchName.toLocaleLowerCase());
-    const matchesStatus = !selectedStatus || project.status === selectedStatus;
-
-    return matchesName && matchesStatus;
-  });
   const hasFilters = Boolean(searchName || selectedStatus);
 
   return (
@@ -83,15 +90,12 @@ export default function ProjectsPage() {
           <div>
             <p className="page-kicker">Your workspace</p>
             <h1 className="page-title">Projects</h1>
-            <p className="page-description">
-              Projects you own or belong to.
-            </p>
+            <p className="page-description">Projects you own or belong to.</p>
           </div>
           {currentUser.role !== 'MEMBER' && (
             <CreateProjectForm
               currentUser={currentUser}
               onCreated={loadProjects}
-              owners={owners}
             />
           )}
         </div>
@@ -101,20 +105,18 @@ export default function ProjectsPage() {
         />
         <p className="mb-4 text-sm font-medium text-slate-500">
           {hasFilters
-            ? `Showing ${matchingProjects.length} of ${projects.length} projects`
-            : `${projects.length} ${projects.length === 1 ? 'project' : 'projects'}`}
+            ? `Showing ${projects.length} of ${projectMeta.total} matching projects`
+            : `${projectMeta.total} ${projectMeta.total === 1 ? 'project' : 'projects'}`}
         </p>
-        {projects.length === 0 ? (
+        {projectMeta.total === 0 ? (
           <div className="panel border-dashed p-10 text-center text-slate-600">
-            You do not have access to any projects yet.
-          </div>
-        ) : matchingProjects.length === 0 ? (
-          <div className="panel border-dashed p-10 text-center text-slate-600">
-            No projects match your search or selected status.
+            {hasFilters
+              ? 'No projects match your search or selected status.'
+              : 'You do not have access to any projects yet.'}
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {matchingProjects.map((project) => (
+            {projects.map((project) => (
               <Link
                 className="group panel p-5 transition duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md"
                 href={`/projects/${project.id}`}
@@ -140,6 +142,7 @@ export default function ProjectsPage() {
             ))}
           </div>
         )}
+        <ProjectPagination meta={projectMeta} />
       </section>
     </main>
   );
@@ -148,9 +151,7 @@ export default function ProjectsPage() {
 function ProjectsState({ message }: { message: string }) {
   return (
     <main className="app-page flex min-h-screen items-center justify-center p-6">
-      <p className="panel px-6 py-4 text-sm text-slate-600">
-        {message}
-      </p>
+      <p className="panel px-6 py-4 text-sm text-slate-600">{message}</p>
     </main>
   );
 }

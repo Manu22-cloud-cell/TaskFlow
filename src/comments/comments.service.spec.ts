@@ -66,6 +66,51 @@ describe('CommentsService', () => {
     );
   });
 
+  it('returns newest comments first with a cursor for the next page', async () => {
+    mockPrisma.comment.findMany.mockResolvedValue([
+      { id: 5, content: 'Newest' },
+      { id: 4, content: 'Middle' },
+      { id: 3, content: 'Older' },
+    ]);
+
+    await expect(
+      service.findAll(task.id, { limit: 2 }, member),
+    ).resolves.toEqual({
+      data: [
+        { id: 5, content: 'Newest' },
+        { id: 4, content: 'Middle' },
+      ],
+      meta: { limit: 2, nextCursor: 4, hasNextPage: true },
+    });
+
+    expect(mockPrisma.comment.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { taskId: task.id },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: 3,
+      }),
+    );
+  });
+
+  it('uses the supplied cursor and reports when no additional activity exists', async () => {
+    mockPrisma.taskActivity.findMany.mockResolvedValue([{ id: 2 }]);
+
+    await expect(
+      service.activity(task.id, { cursor: 3, limit: 2 }, member),
+    ).resolves.toEqual({
+      data: [{ id: 2 }],
+      meta: { limit: 2, nextCursor: null, hasNextPage: false },
+    });
+
+    expect(mockPrisma.taskActivity.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cursor: { id: 3 },
+        skip: 1,
+        take: 3,
+      }),
+    );
+  });
+
   it('emits an event after updating a comment', async () => {
     mockPrisma.comment.findUnique.mockResolvedValue({
       id: 9,

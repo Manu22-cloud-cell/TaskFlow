@@ -6,6 +6,16 @@ import {
   ProjectAccessService,
 } from '../projects/project-access.service.js';
 import { RealtimeGateway } from '../realtime/realtime.gateway.js';
+import { ListTaskFeedDto } from './dto/list-task-feed.dto.js';
+
+type TaskFeedPage<T> = {
+  data: T[];
+  meta: {
+    limit: number;
+    nextCursor: number | null;
+    hasNextPage: boolean;
+  };
+};
 
 @Injectable()
 export class CommentsService {
@@ -22,13 +32,25 @@ export class CommentsService {
     return task;
   }
 
-  async findAll(taskId: number, user: AuthenticatedUser) {
+  async findAll(
+    taskId: number,
+    pagination: ListTaskFeedDto,
+    user: AuthenticatedUser,
+  ) {
     await this.taskForView(taskId, user);
-    return this.prisma.comment.findMany({
+    const limit = pagination.limit ?? 20;
+    const comments = await this.prisma.comment.findMany({
       where: { taskId },
       include: { author: { select: { id: true, name: true, email: true } } },
-      orderBy: { createdAt: 'asc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      ...(pagination.cursor && {
+        cursor: { id: pagination.cursor },
+        skip: 1,
+      }),
+      take: limit + 1,
     });
+
+    return this.toFeedPage(comments, limit);
   }
 
   async create(taskId: number, content: string, user: AuthenticatedUser) {
@@ -103,12 +125,41 @@ export class CommentsService {
     );
     return { message: 'Comment deleted successfully' };
   }
-  async activity(taskId: number, user: AuthenticatedUser) {
+  async activity(
+    taskId: number,
+    pagination: ListTaskFeedDto,
+    user: AuthenticatedUser,
+  ) {
     await this.taskForView(taskId, user);
-    return this.prisma.taskActivity.findMany({
+    const limit = pagination.limit ?? 20;
+    const activity = await this.prisma.taskActivity.findMany({
       where: { taskId },
       include: { actor: { select: { id: true, name: true, email: true } } },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      ...(pagination.cursor && {
+        cursor: { id: pagination.cursor },
+        skip: 1,
+      }),
+      take: limit + 1,
     });
+
+    return this.toFeedPage(activity, limit);
+  }
+
+  private toFeedPage<T extends { id: number }>(
+    records: T[],
+    limit: number,
+  ): TaskFeedPage<T> {
+    const hasNextPage = records.length > limit;
+    const data = hasNextPage ? records.slice(0, limit) : records;
+
+    return {
+      data,
+      meta: {
+        limit,
+        nextCursor: hasNextPage ? (data.at(-1)?.id ?? null) : null,
+        hasNextPage,
+      },
+    };
   }
 }

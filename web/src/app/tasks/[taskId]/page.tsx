@@ -10,6 +10,7 @@ import { TaskActions } from '@/features/tasks/components/task-actions';
 import { getClientApiError } from '@/lib/client-api';
 import type {
   Comment,
+  CursorPageMeta,
   Project,
   ProjectMember,
   Task,
@@ -33,6 +34,10 @@ export default function TaskDetailsPage() {
   const [task, setTask] = useState<Task | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [activity, setActivity] = useState<TaskActivity[]>([]);
+  const [commentsMeta, setCommentsMeta] = useState<CursorPageMeta | null>(null);
+  const [activityMeta, setActivityMeta] = useState<CursorPageMeta | null>(null);
+  const [isLoadingOlderComments, setIsLoadingOlderComments] = useState(false);
+  const [isLoadingOlderActivity, setIsLoadingOlderActivity] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [projectMembers, setProjectMembers] = useState<ProjectMember[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -60,8 +65,10 @@ export default function TaskDetailsPage() {
 
       setTask(taskResponse);
       setProject(projectResponse);
-      setComments(commentsResponse);
-      setActivity(activityResponse);
+      setComments([...commentsResponse.data].reverse());
+      setCommentsMeta(commentsResponse.meta);
+      setActivity(activityResponse.data);
+      setActivityMeta(activityResponse.meta);
       setCurrentUser(userResponse);
       setProjectMembers(membersResponse);
     } catch (error) {
@@ -87,6 +94,44 @@ export default function TaskDetailsPage() {
       (member) =>
         member.user.id === currentUser.id && member.role === 'MANAGER',
     );
+
+  async function loadOlderComments() {
+    if (!commentsMeta?.nextCursor || isLoadingOlderComments) return;
+
+    setIsLoadingOlderComments(true);
+
+    try {
+      const response = await getTaskComments(taskId, {
+        cursor: commentsMeta.nextCursor,
+      });
+
+      setComments((current) => mergeOlderItems(current, response.data));
+      setCommentsMeta(response.meta);
+    } catch (error) {
+      setError(getClientApiError(error, 'Unable to load older comments.'));
+    } finally {
+      setIsLoadingOlderComments(false);
+    }
+  }
+
+  async function loadOlderActivity() {
+    if (!activityMeta?.nextCursor || isLoadingOlderActivity) return;
+
+    setIsLoadingOlderActivity(true);
+
+    try {
+      const response = await getTaskActivity(taskId, {
+        cursor: activityMeta.nextCursor,
+      });
+
+      setActivity((current) => mergeOlderItems(current, response.data, false));
+      setActivityMeta(response.meta);
+    } catch (error) {
+      setError(getClientApiError(error, 'Unable to load older activity.'));
+    } finally {
+      setIsLoadingOlderActivity(false);
+    }
+  }
 
   return (
     <main className="app-page">
@@ -120,13 +165,21 @@ export default function TaskDetailsPage() {
             )}
           </section>
 
-          <ActivityTimeline activity={activity} />
+          <ActivityTimeline
+            activity={activity}
+            hasMore={activityMeta?.hasNextPage ?? false}
+            isLoadingMore={isLoadingOlderActivity}
+            onLoadMore={loadOlderActivity}
+          />
         </div>
 
         <CommentsSection
           canManageProject={canManageProject}
           comments={comments}
           currentUserId={currentUser.id}
+          hasMore={commentsMeta?.hasNextPage ?? false}
+          isLoadingMore={isLoadingOlderComments}
+          onLoadMore={loadOlderComments}
           taskId={task.id}
         />
       </section>
@@ -137,9 +190,7 @@ export default function TaskDetailsPage() {
 function TaskState({ message }: { message: string }) {
   return (
     <main className="app-page flex min-h-screen items-center justify-center p-6">
-      <p className="panel px-6 py-4 text-sm text-slate-600">
-        {message}
-      </p>
+      <p className="panel px-6 py-4 text-sm text-slate-600">{message}</p>
     </main>
   );
 }
@@ -173,7 +224,17 @@ function DetailItem({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ActivityTimeline({ activity }: { activity: TaskActivity[] }) {
+function ActivityTimeline({
+  activity,
+  hasMore,
+  isLoadingMore,
+  onLoadMore,
+}: {
+  activity: TaskActivity[];
+  hasMore: boolean;
+  isLoadingMore: boolean;
+  onLoadMore: () => void;
+}) {
   return (
     <aside className="panel p-5 sm:p-6">
       <h2 className="text-lg font-semibold text-slate-900">Activity</h2>
@@ -196,8 +257,35 @@ function ActivityTimeline({ activity }: { activity: TaskActivity[] }) {
           ))}
         </ol>
       )}
+
+      {hasMore && (
+        <button
+          className="button-secondary mt-5 w-full"
+          disabled={isLoadingMore}
+          onClick={onLoadMore}
+          type="button"
+        >
+          {isLoadingMore ? 'Loading…' : 'Load older activity'}
+        </button>
+      )}
     </aside>
   );
+}
+
+function mergeOlderItems<T extends { id: number }>(
+  current: T[],
+  olderNewestFirst: T[],
+  prependOlderItems = true,
+) {
+  const older = prependOlderItems
+    ? [...olderNewestFirst].reverse()
+    : olderNewestFirst;
+  const existingIds = new Set(current.map((item) => item.id));
+  const uniqueOlderItems = older.filter((item) => !existingIds.has(item.id));
+
+  return prependOlderItems
+    ? [...uniqueOlderItems, ...current]
+    : [...current, ...uniqueOlderItems];
 }
 
 function describeActivity(event: TaskActivity) {

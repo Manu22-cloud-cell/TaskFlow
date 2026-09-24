@@ -6,11 +6,13 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import { Request } from 'express';
 import { CreateProjectDto } from './dto/create-project.dto.js';
+import { ListProjectsDto } from './dto/list-projects.dto.js';
 import { UpdateProjectDto } from './dto/update-project.dto.js';
 import { ProjectsService } from './projects.service.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
@@ -21,12 +23,15 @@ import { AuthenticatedUser } from './project-access.service.js';
 
 @Controller('projects')
 export class ProjectsController {
-  constructor(private readonly projectsService: ProjectsService) { }
+  constructor(private readonly projectsService: ProjectsService) {}
 
   @UseGuards(JwtAuthGuard)
   @Get()
-  async findAll(@Req() request: Request & { user: AuthenticatedUser }) {
-    return this.projectsService.findAll(request.user);
+  async findAll(
+    @Query() filters: ListProjectsDto,
+    @Req() request: Request & { user: AuthenticatedUser },
+  ) {
+    return this.projectsService.findAll(request.user, filters);
   }
 
   @UseGuards(JwtAuthGuard)

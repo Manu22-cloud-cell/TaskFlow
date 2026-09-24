@@ -40,6 +40,8 @@ export function ProjectFilters({
     if (status) params.set('status', status);
     else params.delete('status');
 
+    params.delete('page');
+
     const query = params.toString();
     router.push(query ? `${pathname}?${query}` : pathname);
   }
@@ -82,10 +84,7 @@ export function ProjectFilters({
       </label>
 
       <div className="flex gap-2">
-        <button
-          className="button-primary"
-          type="submit"
-        >
+        <button className="button-primary" type="submit">
           Apply
         </button>
         {hasFilters && (

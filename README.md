@@ -16,18 +16,18 @@ TaskFlow is a Jira-style collaborative task-management application. It has a Nes
 
 ## Stack
 
-| Technology               | Purpose                                                    |
-| ------------------------ | ---------------------------------------------------------- |
-| NestJS / TypeScript      | REST API, WebSocket gateway, and modular backend           |
-| Next.js / React          | Client-side application and task-board interface           |
-| PostgreSQL               | Relational database                                        |
-| Prisma 7                 | Typed database client and migrations                       |
-| Socket.IO                | Realtime collaboration events                              |
-| JWT / bcrypt             | HTTP-only cookie authentication and credential security    |
-| Axios                    | Browser API client with refresh-and-retry support           |
-| class-validator          | Request validation                                         |
-| Jest / Supertest         | Unit and end-to-end tests                                  |
-| Nginx + systemd (deploy) | HTTPS reverse proxy and production process management      |
+| Technology               | Purpose                                                 |
+| ------------------------ | ------------------------------------------------------- |
+| NestJS / TypeScript      | REST API, WebSocket gateway, and modular backend        |
+| Next.js / React          | Client-side application and task-board interface        |
+| PostgreSQL               | Relational database                                     |
+| Prisma 7                 | Typed database client and migrations                    |
+| Socket.IO                | Realtime collaboration events                           |
+| JWT / bcrypt             | HTTP-only cookie authentication and credential security |
+| Axios                    | Browser API client with refresh-and-retry support       |
+| class-validator          | Request validation                                      |
+| Jest / Supertest         | Unit and end-to-end tests                               |
+| Nginx + systemd (deploy) | HTTPS reverse proxy and production process management   |
 
 ## Setup
 
@@ -227,18 +227,18 @@ On login, NestJS sets a 15-minute access cookie and a 7-day refresh cookie. Axio
 
 ### Users
 
-| Method           | Route        | Description                                      |
-| ---------------- | ------------ | ------------------------------------------------ |
-| GET              | `/users`     | List users (global admin or manager)             |
-| GET              | `/users/:id` | Read a user (global admin or manager)            |
-| POST             | `/users`     | Create a user (global admin)                     |
-| PATCH/DELETE     | `/users/:id` | Update global role or delete a user (admin only) |
+| Method       | Route        | Description                                         |
+| ------------ | ------------ | --------------------------------------------------- |
+| GET          | `/users`     | Search and paginate users (global admin or manager) |
+| GET          | `/users/:id` | Read a user (global admin or manager)               |
+| POST         | `/users`     | Create a user (global admin)                        |
+| PATCH/DELETE | `/users/:id` | Update global role or delete a user (admin only)    |
 
 ### Projects and members
 
 | Method           | Route                                  | Description                                      |
 | ---------------- | -------------------------------------- | ------------------------------------------------ |
-| GET              | `/projects`                            | List projects visible to requester               |
+| GET              | `/projects`                            | Search, filter, and paginate visible projects    |
 | POST             | `/projects`                            | Create project (admin or global manager)         |
 | GET/PATCH/DELETE | `/projects/:id`                        | Read, manage, or delete subject to project scope |
 | GET/POST         | `/projects/:projectId/members`         | List or add project members                      |
@@ -260,6 +260,22 @@ Board query parameters: `status`, `assignedToId`, `priority`, `dueDate`, `page`,
 GET /projects/12/tasks?status=TODO&page=1&limit=50
 ```
 
+Project and user list queries use offset pagination. `GET /projects` accepts `search`, `status`, `page`, and `limit`; `GET /users` accepts `search`, `page`, and `limit`. Both return:
+
+```json
+{
+  "data": [],
+  "meta": {
+    "page": 1,
+    "limit": 12,
+    "total": 0,
+    "totalPages": 0
+  }
+}
+```
+
+The project-owner and member pickers use the paginated user search endpoint as a typeahead, requesting up to ten matching users instead of loading every user into the page.
+
 Move request:
 
 ```json
@@ -275,6 +291,26 @@ Move request:
 | GET          | `/tasks/:taskId/activity`            | Read newest-first activity feed |
 
 Activity currently records task creation, status changes, assignee changes, priority changes, due-date changes, and comments.
+
+Comments and activity use cursor pagination to prevent long task histories from loading in a single request. Both endpoints accept an optional `cursor` (the final item ID from the previous page) and `limit` (default `20`, maximum `50`):
+
+```http
+GET /tasks/12/activity?limit=20
+GET /tasks/12/comments?cursor=84&limit=20
+```
+
+They return a consistent page shape:
+
+```json
+{
+  "data": [],
+  "meta": {
+    "limit": 20,
+    "nextCursor": 84,
+    "hasNextPage": true
+  }
+}
+```
 
 ## Realtime collaboration
 

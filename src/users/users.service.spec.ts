@@ -1,7 +1,4 @@
-import {
-  ConflictException,
-  NotFoundException,
-} from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 jest.unstable_mockModule('bcrypt', () => ({
@@ -17,21 +14,26 @@ describe('UsersService', () => {
   const prisma = {
     user: {
       findMany: jest.fn(),
+      count: jest.fn(),
       findUnique: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
     },
+    $transaction: jest.fn(),
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
+    prisma.$transaction.mockImplementation((operations: Promise<unknown>[]) =>
+      Promise.all(operations),
+    );
 
     service = new UsersService(prisma as any);
   });
 
   describe('findAll', () => {
-    it('should return all users without passwords', async () => {
+    it('returns a paginated safe user list', async () => {
       const users = [
         {
           id: 1,
@@ -43,12 +45,17 @@ describe('UsersService', () => {
       ];
 
       prisma.user.findMany.mockResolvedValue(users);
+      prisma.user.count.mockResolvedValue(1);
 
-      const result = await service.findAll();
+      const result = await service.findAll({});
 
-      expect(result).toEqual(users);
+      expect(result).toEqual({
+        data: users,
+        meta: { page: 1, limit: 20, total: 1, totalPages: 1 },
+      });
 
       expect(prisma.user.findMany).toHaveBeenCalledWith({
+        where: undefined,
         select: {
           id: true,
           name: true,
@@ -57,7 +64,40 @@ describe('UsersService', () => {
           createdAt: true,
           updatedAt: true,
         },
+        orderBy: { createdAt: 'desc' },
+        skip: 0,
+        take: 20,
       });
+    });
+
+    it('searches names and emails before paginating', async () => {
+      prisma.user.findMany.mockResolvedValue([]);
+      prisma.user.count.mockResolvedValue(12);
+
+      const result = await service.findAll({
+        search: 'manoj',
+        page: 2,
+        limit: 5,
+      });
+
+      expect(result.meta).toEqual({
+        page: 2,
+        limit: 5,
+        total: 12,
+        totalPages: 3,
+      });
+      expect(prisma.user.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            OR: [
+              { name: { contains: 'manoj', mode: 'insensitive' } },
+              { email: { contains: 'manoj', mode: 'insensitive' } },
+            ],
+          },
+          skip: 5,
+          take: 5,
+        }),
+      );
     });
   });
 
@@ -111,9 +151,7 @@ describe('UsersService', () => {
 
       const hashedPassword = 'hashed-password';
 
-      (bcrypt.hash as jest.Mock).mockResolvedValue(
-        hashedPassword,
-      );
+      (bcrypt.hash as jest.Mock).mockResolvedValue(hashedPassword);
 
       prisma.user.findUnique.mockResolvedValue(null);
 
@@ -128,10 +166,7 @@ describe('UsersService', () => {
 
       const result = await service.create(dto);
 
-      expect(bcrypt.hash).toHaveBeenCalledWith(
-        dto.password,
-        10,
-      );
+      expect(bcrypt.hash).toHaveBeenCalledWith(dto.password, 10);
 
       expect(prisma.user.create).toHaveBeenCalledWith({
         data: {
@@ -219,9 +254,7 @@ describe('UsersService', () => {
 
       await expect(
         service.update(999, { name: 'Updated User' }),
-      ).rejects.toThrow(
-        new NotFoundException('User not found'),
-      );
+      ).rejects.toThrow(new NotFoundException('User not found'));
 
       expect(prisma.user.update).not.toHaveBeenCalled();
     });
@@ -248,9 +281,7 @@ describe('UsersService', () => {
         service.update(1, {
           email: 'user2@example.com',
         }),
-      ).rejects.toThrow(
-        new ConflictException('Email already exists'),
-      );
+      ).rejects.toThrow(new ConflictException('Email already exists'));
 
       expect(prisma.user.update).not.toHaveBeenCalled();
     });
@@ -265,9 +296,7 @@ describe('UsersService', () => {
 
       const hashedPassword = 'new-hash';
 
-      (bcrypt.hash as jest.Mock).mockResolvedValue(
-        hashedPassword,
-      );
+      (bcrypt.hash as jest.Mock).mockResolvedValue(hashedPassword);
 
       prisma.user.findUnique.mockResolvedValue(existingUser);
 
@@ -283,10 +312,7 @@ describe('UsersService', () => {
         password: 'new-password',
       });
 
-      expect(bcrypt.hash).toHaveBeenCalledWith(
-        'new-password',
-        10,
-      );
+      expect(bcrypt.hash).toHaveBeenCalledWith('new-password', 10);
 
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: {

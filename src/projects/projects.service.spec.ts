@@ -16,6 +16,7 @@ describe('ProjectsService', () => {
     project: {
       create: jest.fn(),
       findMany: jest.fn(),
+      count: jest.fn(),
       findUnique: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
@@ -35,6 +36,9 @@ describe('ProjectsService', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
+    mockPrisma.$transaction.mockImplementation(
+      (operations: Promise<unknown>[]) => Promise.all(operations),
+    );
     service = new ProjectsService(
       mockPrisma as any,
       mockProjectAccess as any,
@@ -71,7 +75,8 @@ describe('ProjectsService', () => {
 
   it('filters a non-admin project list to owned or member projects', async () => {
     mockPrisma.project.findMany.mockResolvedValue([]);
-    await service.findAll(manager);
+    mockPrisma.project.count.mockResolvedValue(0);
+    await service.findAll(manager, {});
 
     expect(mockPrisma.project.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -81,6 +86,35 @@ describe('ProjectsService', () => {
             { members: { some: { userId: manager.sub } } },
           ],
         },
+      }),
+    );
+  });
+
+  it('applies search, status, and offset pagination to the project list', async () => {
+    mockPrisma.project.findMany.mockResolvedValue([]);
+    mockPrisma.project.count.mockResolvedValue(14);
+
+    const result = await service.findAll(admin, {
+      search: 'Roadmap',
+      status: 'ACTIVE' as any,
+      page: 2,
+      limit: 5,
+    });
+
+    expect(result.meta).toEqual({
+      page: 2,
+      limit: 5,
+      total: 14,
+      totalPages: 3,
+    });
+    expect(mockPrisma.project.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          name: { contains: 'Roadmap', mode: 'insensitive' },
+          status: 'ACTIVE',
+        },
+        skip: 5,
+        take: 5,
       }),
     );
   });

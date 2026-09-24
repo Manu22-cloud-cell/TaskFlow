@@ -16,11 +16,17 @@ export function CommentsSection({
   taskId,
   currentUserId,
   canManageProject,
+  hasMore,
+  isLoadingMore,
+  onLoadMore,
 }: {
   comments: Comment[];
   taskId: number;
   currentUserId: number;
   canManageProject: boolean;
+  hasMore: boolean;
+  isLoadingMore: boolean;
+  onLoadMore: () => void;
 }) {
   const router = useRouter();
   const [content, setContent] = useState('');
@@ -194,6 +200,17 @@ export function CommentsSection({
               </article>
             );
           })
+        )}
+
+        {hasMore && (
+          <button
+            className="button-secondary w-full"
+            disabled={isLoadingMore}
+            onClick={onLoadMore}
+            type="button"
+          >
+            {isLoadingMore ? 'Loading…' : 'Load older comments'}
+          </button>
         )}
       </div>
     </section>
