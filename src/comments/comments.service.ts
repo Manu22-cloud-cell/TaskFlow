@@ -1,5 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { TaskActivityType, UserRole } from '../generated/prisma/enums.js';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { TaskActivityType } from '../generated/prisma/enums.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
   AuthenticatedUser,
@@ -30,6 +34,15 @@ export class CommentsService {
     if (!task) throw new NotFoundException('Task not found');
     await this.access.assertCanViewProject(task.projectId, user);
     return task;
+  }
+
+  private assertIsCommentAuthor(
+    comment: { authorId: number },
+    user: AuthenticatedUser,
+  ) {
+    if (comment.authorId !== user.sub) {
+      throw new ForbiddenException('Only the comment author can modify it');
+    }
   }
 
   async findAll(
@@ -91,8 +104,7 @@ export class CommentsService {
     });
     if (!comment || comment.taskId !== taskId)
       throw new NotFoundException('Comment not found');
-    if (comment.authorId !== user.sub && user.role !== UserRole.ADMIN)
-      await this.access.assertCanManageProject(task.projectId, user);
+    this.assertIsCommentAuthor(comment, user);
     const updatedComment = await this.prisma.comment.update({
       where: { id: commentId },
       data: { content },
@@ -113,8 +125,7 @@ export class CommentsService {
     });
     if (!comment || comment.taskId !== taskId)
       throw new NotFoundException('Comment not found');
-    if (comment.authorId !== user.sub && user.role !== UserRole.ADMIN)
-      await this.access.assertCanManageProject(task.projectId, user);
+    this.assertIsCommentAuthor(comment, user);
     await this.prisma.comment.delete({ where: { id: commentId } });
     this.realtime.emitCommentEvent(
       task.projectId,

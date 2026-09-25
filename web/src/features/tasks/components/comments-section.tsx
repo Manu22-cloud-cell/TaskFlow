@@ -15,7 +15,6 @@ export function CommentsSection({
   comments,
   taskId,
   currentUserId,
-  canManageProject,
   hasMore,
   isLoadingMore,
   onLoadMore,
@@ -23,7 +22,6 @@ export function CommentsSection({
   comments: Comment[];
   taskId: number;
   currentUserId: number;
-  canManageProject: boolean;
   hasMore: boolean;
   isLoadingMore: boolean;
   onLoadMore: () => void;
@@ -127,8 +125,7 @@ export function CommentsSection({
           <p className="text-sm text-slate-500">No comments yet.</p>
         ) : (
           comments.map((comment) => {
-            const canModify =
-              comment.authorId === currentUserId || canManageProject;
+            const canModify = comment.authorId === currentUserId;
             const isEditing = editingCommentId === comment.id;
 
             return (

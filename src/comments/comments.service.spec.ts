@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
+import { ForbiddenException } from '@nestjs/common';
+
 import { UserRole } from '../generated/prisma/enums.js';
 import { CommentsService } from './comments.service.js';
 
@@ -8,6 +10,11 @@ describe('CommentsService', () => {
     sub: 3,
     email: 'member@example.com',
     role: UserRole.MEMBER,
+  };
+  const admin = {
+    sub: 1,
+    email: 'admin@example.com',
+    role: UserRole.ADMIN,
   };
   const task = { id: 45, projectId: 12 };
   const mockPrisma = {
@@ -128,6 +135,36 @@ describe('CommentsService', () => {
       9,
       member.sub,
     );
+  });
+
+  it('prevents an admin from editing another user’s comment', async () => {
+    mockPrisma.comment.findUnique.mockResolvedValue({
+      id: 9,
+      taskId: task.id,
+      authorId: member.sub,
+    });
+
+    await expect(
+      service.update(task.id, 9, 'Changed by admin', admin),
+    ).rejects.toThrow(
+      new ForbiddenException('Only the comment author can modify it'),
+    );
+
+    expect(mockPrisma.comment.update).not.toHaveBeenCalled();
+  });
+
+  it('prevents a different member from deleting a comment', async () => {
+    mockPrisma.comment.findUnique.mockResolvedValue({
+      id: 9,
+      taskId: task.id,
+      authorId: 8,
+    });
+
+    await expect(service.remove(task.id, 9, member)).rejects.toThrow(
+      new ForbiddenException('Only the comment author can modify it'),
+    );
+
+    expect(mockPrisma.comment.delete).not.toHaveBeenCalled();
   });
 
   it('emits an event after deleting a comment', async () => {

@@ -174,7 +174,6 @@ export default function TaskDetailsPage() {
         </div>
 
         <CommentsSection
-          canManageProject={canManageProject}
           comments={comments}
           currentUserId={currentUser.id}
           hasMore={commentsMeta?.hasNextPage ?? false}
