@@ -3,6 +3,12 @@ const ACCESS_TOKEN_COOKIE = 'taskflow_access_token';
 const REFRESH_TOKEN_COOKIE = 'taskflow_refresh_token';
 
 export function proxy(request: NextRequest) {
+  // API cookies are unavailable to this edge proxy when Vercel and Render
+  // use their separate default domains. Axios handles browser-side refresh.
+  if (process.env.DISABLE_PROXY_AUTH === 'true') {
+    return NextResponse.next();
+  }
+
   const accessToken = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
   const refreshToken = request.cookies.get(REFRESH_TOKEN_COOKIE)?.value;
 

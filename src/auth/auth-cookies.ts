@@ -6,10 +6,16 @@ export const REFRESH_TOKEN_COOKIE = 'taskflow_refresh_token';
 const ACCESS_TOKEN_MAX_AGE_MS = 15 * 60 * 1000;
 const REFRESH_TOKEN_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
+function getSameSiteOption(): CookieOptions['sameSite'] {
+  // Cross-site cookies are only needed when the frontend and API are hosted
+  // on different sites, such as Vercel's and Render's default domains.
+  return process.env.COOKIE_SAME_SITE === 'none' ? 'none' : 'lax';
+}
+
 function cookieOptions(maxAge: number): CookieOptions {
   return {
     httpOnly: true,
-    sameSite: 'lax',
+    sameSite: getSameSiteOption(),
     secure: process.env.NODE_ENV === 'production',
     path: '/',
     maxAge,

@@ -374,6 +374,8 @@ JWT_EXPIRES_IN="15m"
 JWT_REFRESH_SECRET="different-long-random-secret"
 JWT_REFRESH_EXPIRES_IN="7d"
 CORS_ORIGIN="https://app.example.com"
+COOKIE_DOMAIN=".example.com"
+COOKIE_SAME_SITE="lax"
 ```
 
 For the frontend build, set:
@@ -382,5 +384,23 @@ For the frontend build, set:
 NEXT_PUBLIC_TASKFLOW_API_URL=https://api.example.com
 NEXT_PUBLIC_TASKFLOW_SOCKET_URL=https://api.example.com
 ```
+
+### Render + Vercel learning deployment without a custom domain
+
+The default `onrender.com` API URL and `vercel.app` frontend URL are different sites. For this learning-only topology, configure the API with the exact Vercel production URL and cross-site cookies:
+
+```env
+CORS_ORIGIN="https://your-project.vercel.app"
+COOKIE_DOMAIN=""
+COOKIE_SAME_SITE="none"
+```
+
+Set this Vercel environment variable for the same deployment:
+
+```env
+DISABLE_PROXY_AUTH="true"
+```
+
+The browser-side Axios client continues to validate and refresh sessions. Some browsers block third-party cookies, so use a shared custom domain for a production deployment.
 
 Do not expose NestJS (`3000`), Next.js (`3001`), or PostgreSQL (`5432`) directly to the internet. Expose only Nginx on ports `80` and `443`; use a process manager such as `systemd` for both Node.js applications.
