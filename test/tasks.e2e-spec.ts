@@ -147,7 +147,7 @@ describe('Task board (e2e)', () => {
     memberTaskId = memberTaskResponse.body.id;
   });
 
-  it('allows a project member to read the board and transition their assigned task', async () => {
+  it('allows a project member to move any visible task on the board', async () => {
     const response = await request(app.getHttpServer())
       .get(`/projects/${projectId}/tasks`)
       .set('Authorization', `Bearer ${memberToken}`)
@@ -171,9 +171,16 @@ describe('Task board (e2e)', () => {
       });
 
     await request(app.getHttpServer())
-      .patch(`/tasks/${firstTaskId}/status`)
+      .patch(`/tasks/${firstTaskId}/move`)
       .set('Authorization', `Bearer ${memberToken}`)
-      .send({ status: 'COMPLETED' })
-      .expect(403);
+      .send({ status: 'COMPLETED', position: 0 })
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({
+          id: firstTaskId,
+          status: 'COMPLETED',
+          position: 0,
+        });
+      });
   });
 });

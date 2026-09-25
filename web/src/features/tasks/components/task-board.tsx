@@ -26,10 +26,7 @@ import { useRouter } from 'next/navigation';
 import { TaskCard } from './task-card';
 import { getClientApiError } from '@/lib/client-api';
 import type { Task, TaskStatus } from '@/lib/types';
-import {
-  moveTask as moveTaskRequest,
-  updateTaskStatus,
-} from '@/services/client/tasks.service';
+import { moveTask as moveTaskRequest } from '@/services/client/tasks.service';
 
 const columns: { status: TaskStatus; title: string }[] = [
   { status: 'TODO', title: 'To do' },
@@ -39,13 +36,6 @@ const columns: { status: TaskStatus; title: string }[] = [
 ];
 
 type TasksByStatus = Record<TaskStatus, Task[]>;
-
-const statusLabels: Record<TaskStatus, string> = {
-  TODO: 'To do',
-  IN_PROGRESS: 'In progress',
-  COMPLETED: 'Completed',
-  CANCELLED: 'Cancelled',
-};
 
 function taskId(task: Task) {
   return `task-${task.id}`;
@@ -67,15 +57,7 @@ function getTaskId(value: string) {
   return Number(value.replace('task-', ''));
 }
 
-export function TaskBoard({
-  tasks,
-  currentUserId,
-  canManageTasks,
-}: {
-  tasks: Task[];
-  currentUserId: number;
-  canManageTasks: boolean;
-}) {
+export function TaskBoard({ tasks }: { tasks: Task[] }) {
   const router = useRouter();
   const [board, setBoard] = useState<TasksByStatus>(() => createBoard(tasks));
   const [activeTask, setActiveTask] = useState<Task | null>(null);
@@ -167,46 +149,6 @@ export function TaskBoard({
     }
   }
 
-  async function handleStatusChange(task: Task, targetStatus: TaskStatus) {
-    const sourceStatus = findTaskStatus(taskId(task));
-
-    if (!sourceStatus || sourceStatus === targetStatus || isSaving) return;
-
-    const sourceIndex = board[sourceStatus].findIndex(
-      (candidate) => candidate.id === task.id,
-    );
-    const targetIndex = board[targetStatus].length;
-    const previousBoard = board;
-    const nextBoard = moveTask(
-      board,
-      task,
-      sourceStatus,
-      targetStatus,
-      sourceIndex,
-      targetIndex,
-    );
-
-    setToast(null);
-    setBoard(nextBoard);
-    setIsSaving(true);
-
-    try {
-      await updateTaskStatus(task.id, targetStatus);
-
-      router.refresh();
-    } catch (error) {
-      setBoard(previousBoard);
-      setToast(
-        getClientApiError(
-          error,
-          'Unable to update task status. The board was restored.',
-        ),
-      );
-    } finally {
-      setIsSaving(false);
-    }
-  }
-
   return (
     <>
       {toast && (
@@ -228,11 +170,8 @@ export function TaskBoard({
           <div className="grid min-w-[900px] gap-4 lg:grid-cols-4">
             {columns.map((column) => (
               <TaskColumn
-                canManageTasks={canManageTasks}
-                currentUserId={currentUserId}
                 isSaving={isSaving}
                 key={column.status}
-                onStatusChange={handleStatusChange}
                 status={column.status}
                 tasks={board[column.status]}
                 title={column.title}
@@ -282,17 +221,11 @@ function TaskColumn({
   title,
   tasks,
   isSaving,
-  currentUserId,
-  canManageTasks,
-  onStatusChange,
 }: {
   status: TaskStatus;
   title: string;
   tasks: Task[];
   isSaving: boolean;
-  currentUserId: number;
-  canManageTasks: boolean;
-  onStatusChange: (task: Task, status: TaskStatus) => void;
 }) {
   const { isOver, setNodeRef } = useDroppable({ id: status });
 
@@ -323,14 +256,7 @@ function TaskColumn({
             </p>
           ) : (
             tasks.map((task) => (
-              <TaskInColumn
-                canManageTasks={canManageTasks}
-                currentUserId={currentUserId}
-                disabled={isSaving}
-                key={task.id}
-                onStatusChange={onStatusChange}
-                task={task}
-              />
+              <TaskInColumn disabled={isSaving} key={task.id} task={task} />
             ))
           )}
         </div>
@@ -339,48 +265,8 @@ function TaskColumn({
   );
 }
 
-function TaskInColumn({
-  task,
-  disabled,
-  currentUserId,
-  canManageTasks,
-  onStatusChange,
-}: {
-  task: Task;
-  disabled: boolean;
-  currentUserId: number;
-  canManageTasks: boolean;
-  onStatusChange: (task: Task, status: TaskStatus) => void;
-}) {
-  if (canManageTasks) {
-    return <SortableTaskCard disabled={disabled} task={task} />;
-  }
-
-  const canChangeStatus = task.assignedToId === currentUserId;
-
-  return (
-    <TaskCard task={task}>
-      {canChangeStatus && (
-        <label className="mt-3 block text-xs font-medium text-slate-600">
-          Status
-          <select
-            className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1 text-sm"
-            disabled={disabled}
-            onChange={(event) =>
-              onStatusChange(task, event.target.value as TaskStatus)
-            }
-            value={task.status}
-          >
-            {Object.entries(statusLabels).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
-    </TaskCard>
-  );
+function TaskInColumn({ task, disabled }: { task: Task; disabled: boolean }) {
+  return <SortableTaskCard disabled={disabled} task={task} />;
 }
 
 function SortableTaskCard({

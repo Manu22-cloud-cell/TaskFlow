@@ -141,7 +141,7 @@ describe('TasksService', () => {
     );
   });
 
-  it('moves a task between columns transactionally', async () => {
+  it('allows a project member to move a visible task between columns', async () => {
     const task = { id: 10, projectId: 4, status: 'TODO', position: 1 };
     mockPrisma.task.findUnique.mockResolvedValue(task);
     mockPrisma.task.count.mockResolvedValue(3);
@@ -154,8 +154,14 @@ describe('TasksService', () => {
     await service.move(
       10,
       { status: 'IN_PROGRESS', position: 2 } as any,
-      manager,
+      member,
     );
+
+    expect(mockProjectAccess.assertCanViewProject).toHaveBeenCalledWith(
+      4,
+      member,
+    );
+    expect(mockProjectAccess.assertCanManageProject).not.toHaveBeenCalled();
 
     expect(mockPrisma.task.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -177,15 +183,15 @@ describe('TasksService', () => {
       4,
       'task.moved',
       10,
-      manager.sub,
+      member.sub,
     );
   });
 
-  it('allows an assigned member to transition only their own task', async () => {
+  it('allows a project member to transition any visible task', async () => {
     const task = {
       id: 10,
       projectId: 4,
-      assignedToId: member.sub,
+      assignedToId: 9,
       status: 'TODO',
       position: 0,
     };

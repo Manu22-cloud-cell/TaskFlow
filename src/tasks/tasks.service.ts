@@ -318,7 +318,7 @@ export class TasksService {
       throw new NotFoundException('Task not found');
     }
 
-    await this.projectAccess.assertCanManageProject(
+    await this.projectAccess.assertCanViewProject(
       existingTask.projectId,
       requester,
     );
@@ -355,13 +355,6 @@ export class TasksService {
     }
 
     await this.projectAccess.assertCanViewProject(task.projectId, requester);
-
-    if (task.assignedToId !== requester.sub) {
-      await this.projectAccess.assertCanManageProject(
-        task.projectId,
-        requester,
-      );
-    }
 
     const updatedTask = await this.moveTask(id, updateTaskStatusDto);
     if (task.status !== updatedTask.status) {

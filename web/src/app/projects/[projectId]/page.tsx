@@ -118,8 +118,6 @@ export default function ProjectBoardPage() {
         <BoardFilters members={projectMembers} />
 
         <TaskBoard
-          canManageTasks={canManageTasks}
-          currentUserId={currentUser.id}
           key={tasks
             .map((task) => `${task.id}-${task.status}-${task.position}`)
             .join(',')}
