@@ -1,24 +1,18 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 
 import type { User } from '@/lib/types';
-import { getCurrentUser } from '@/services/client/auth.service';
 import { RealtimeNotificationProvider } from '@/features/realtime/components/realtime-notification-provider';
 
 import { LogoutButton } from './logout-button';
+import { useSession } from './session-provider';
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const { user, isLoading } = useSession();
 
-  useEffect(() => {
-    void getCurrentUser()
-      .then(setUser)
-      .catch(() => undefined);
-  }, []);
-
-  if (!user) {
+  if (isLoading || !user) {
     return (
       <main className="app-page flex min-h-screen items-center justify-center p-6">
         <p className="panel px-5 py-3 text-sm text-slate-600">

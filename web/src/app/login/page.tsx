@@ -6,9 +6,11 @@ import { useRouter } from 'next/navigation';
 
 import { getClientApiError } from '@/lib/client-api';
 import { login } from '@/services/client/auth.service';
+import { useSession } from '@/features/auth/components/session-provider';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { refreshUser } = useSession();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -19,6 +21,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login({ email, password });
+      await refreshUser();
       router.replace('/projects');
       router.refresh();
     } catch (error) {

@@ -5,8 +5,11 @@ import { useRouter } from 'next/navigation';
 
 import { logout as logoutRequest } from '@/services/client/auth.service';
 
+import { useSession } from './session-provider';
+
 export function LogoutButton() {
   const router = useRouter();
+  const { clearUser } = useSession();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   async function logout() {
@@ -15,6 +18,7 @@ export function LogoutButton() {
     try {
       await logoutRequest();
     } finally {
+      clearUser();
       router.replace('/login');
       router.refresh();
     }

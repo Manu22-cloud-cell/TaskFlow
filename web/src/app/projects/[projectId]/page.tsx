@@ -6,19 +6,13 @@ import { useParams, useSearchParams } from 'next/navigation';
 import { ProjectMembersPanel } from '@/features/projects/components/project-members-panel';
 import { ProjectSettings } from '@/features/projects/components/project-settings';
 import { ProjectRealtimeListener } from '@/features/realtime/components/project-realtime-listener';
+import { useSession } from '@/features/auth/components/session-provider';
 import { BoardFilters } from '@/features/tasks/components/board-filters';
 import { BoardPagination } from '@/features/tasks/components/board-pagination';
 import { CreateTaskForm } from '@/features/tasks/components/create-task-form';
 import { TaskBoard } from '@/features/tasks/components/task-board';
 import { getClientApiError } from '@/lib/client-api';
-import type {
-  PaginatedTasks,
-  Project,
-  ProjectMember,
-  Task,
-  User,
-} from '@/lib/types';
-import { getCurrentUser } from '@/services/client/auth.service';
+import type { PaginatedTasks, Project, ProjectMember, Task } from '@/lib/types';
 import {
   getProject,
   getProjectMembers,
@@ -32,10 +26,10 @@ export default function ProjectBoardPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [taskMeta, setTaskMeta] = useState<PaginatedTasks['meta'] | null>(null);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [projectMembers, setProjectMembers] = useState<ProjectMember[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { user: currentUser, isLoading: isSessionLoading } = useSession();
 
   const loadBoard = useCallback(async () => {
     const currentQuery = new URLSearchParams(queryString);
@@ -54,18 +48,16 @@ export default function ProjectBoardPage() {
     setIsLoading(true);
 
     try {
-      const [projectResponse, tasksResponse, userResponse, membersResponse] =
+      const [projectResponse, tasksResponse, membersResponse] =
         await Promise.all([
           getProject(projectId),
           getProjectTasks(projectId, taskQuery),
-          getCurrentUser(),
           getProjectMembers(projectId),
         ]);
 
       setProject(projectResponse);
       setTasks(tasksResponse.data);
       setTaskMeta(tasksResponse.meta);
-      setCurrentUser(userResponse);
       setProjectMembers(membersResponse);
     } catch (error) {
       setError(getClientApiError(error, 'Unable to load this project.'));
@@ -75,10 +67,14 @@ export default function ProjectBoardPage() {
   }, [projectId, queryString]);
 
   useEffect(() => {
-    void Promise.resolve().then(loadBoard);
-  }, [loadBoard]);
+    if (isSessionLoading || !currentUser) return;
 
-  if (isLoading) return <BoardState message="Loading project board…" />;
+    void Promise.resolve().then(loadBoard);
+  }, [currentUser, isSessionLoading, loadBoard]);
+
+  if (isSessionLoading || isLoading) {
+    return <BoardState message="Loading project board…" />;
+  }
   if (error || !project || !taskMeta || !currentUser) {
     return <BoardState message={error ?? 'Project not found.'} />;
   }

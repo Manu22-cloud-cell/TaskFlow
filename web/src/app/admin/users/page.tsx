@@ -5,14 +5,14 @@ import { useCallback, useDeferredValue, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { UserRoleTable } from './user-role-table';
+import { useSession } from '@/features/auth/components/session-provider';
 import { getClientApiError } from '@/lib/client-api';
 import type { PaginatedUsers, User } from '@/lib/types';
-import { getCurrentUser } from '@/services/client/auth.service';
 import { getUsers } from '@/services/client/users.service';
 
 export default function AdminUsersPage() {
   const router = useRouter();
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const { user: currentUser, isLoading: isSessionLoading } = useSession();
   const [users, setUsers] = useState<User[]>([]);
   const [meta, setMeta] = useState<PaginatedUsers['meta'] | null>(null);
   const [search, setSearch] = useState('');
@@ -25,9 +25,7 @@ export default function AdminUsersPage() {
     setError(null);
 
     try {
-      const user = await getCurrentUser();
-
-      if (user.role !== 'ADMIN') {
+      if (!currentUser || currentUser.role !== 'ADMIN') {
         router.replace('/projects');
         return;
       }
@@ -37,7 +35,6 @@ export default function AdminUsersPage() {
         page,
         limit: 20,
       });
-      setCurrentUser(user);
       setUsers(userList.data);
       setMeta(userList.meta);
     } catch (error) {
@@ -45,13 +42,17 @@ export default function AdminUsersPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [deferredSearch, page, router]);
+  }, [currentUser, deferredSearch, page, router]);
 
   useEffect(() => {
-    void Promise.resolve().then(loadUsers);
-  }, [loadUsers]);
+    if (isSessionLoading || !currentUser) return;
 
-  if (isLoading) return <AdminState message="Loading user management…" />;
+    void Promise.resolve().then(loadUsers);
+  }, [currentUser, isSessionLoading, loadUsers]);
+
+  if (isSessionLoading || isLoading) {
+    return <AdminState message="Loading user management…" />;
+  }
   if (error || !currentUser || !meta) {
     return <AdminState message={error ?? 'Unable to load users.'} />;
   }

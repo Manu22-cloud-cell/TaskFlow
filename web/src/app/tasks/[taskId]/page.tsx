@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 
 import { ProjectRealtimeListener } from '@/features/realtime/components/project-realtime-listener';
+import { useSession } from '@/features/auth/components/session-provider';
 import { CommentsSection } from '@/features/tasks/components/comments-section';
 import { TaskActions } from '@/features/tasks/components/task-actions';
 import { getClientApiError } from '@/lib/client-api';
@@ -15,9 +16,7 @@ import type {
   ProjectMember,
   Task,
   TaskActivity,
-  User,
 } from '@/lib/types';
-import { getCurrentUser } from '@/services/client/auth.service';
 import {
   getProject,
   getProjectMembers,
@@ -38,10 +37,10 @@ export default function TaskDetailsPage() {
   const [activityMeta, setActivityMeta] = useState<CursorPageMeta | null>(null);
   const [isLoadingOlderComments, setIsLoadingOlderComments] = useState(false);
   const [isLoadingOlderActivity, setIsLoadingOlderActivity] = useState(false);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [projectMembers, setProjectMembers] = useState<ProjectMember[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { user: currentUser, isLoading: isSessionLoading } = useSession();
 
   const loadTaskDetails = useCallback(async () => {
     setError(null);
@@ -53,13 +52,11 @@ export default function TaskDetailsPage() {
         projectResponse,
         commentsResponse,
         activityResponse,
-        userResponse,
         membersResponse,
       ] = await Promise.all([
         getProject(taskResponse.projectId),
         getTaskComments(taskId),
         getTaskActivity(taskId),
-        getCurrentUser(),
         getProjectMembers(taskResponse.projectId),
       ]);
 
@@ -69,7 +66,6 @@ export default function TaskDetailsPage() {
       setCommentsMeta(commentsResponse.meta);
       setActivity(activityResponse.data);
       setActivityMeta(activityResponse.meta);
-      setCurrentUser(userResponse);
       setProjectMembers(membersResponse);
     } catch (error) {
       setError(getClientApiError(error, 'Unable to load this task.'));
@@ -79,10 +75,14 @@ export default function TaskDetailsPage() {
   }, [taskId]);
 
   useEffect(() => {
-    void Promise.resolve().then(loadTaskDetails);
-  }, [loadTaskDetails]);
+    if (isSessionLoading || !currentUser) return;
 
-  if (isLoading) return <TaskState message="Loading task…" />;
+    void Promise.resolve().then(loadTaskDetails);
+  }, [currentUser, isSessionLoading, loadTaskDetails]);
+
+  if (isSessionLoading || isLoading) {
+    return <TaskState message="Loading task…" />;
+  }
   if (error || !project || !task || !currentUser) {
     return <TaskState message={error ?? 'Task not found.'} />;
   }

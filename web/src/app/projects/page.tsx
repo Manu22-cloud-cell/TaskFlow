@@ -8,14 +8,9 @@ import { CreateProjectForm } from '@/features/projects/components/create-project
 import { ProjectFilters } from '@/features/projects/components/project-filters';
 import { ProjectPagination } from '@/features/projects/components/project-pagination';
 import { UserRealtimeListener } from '@/features/realtime/components/user-realtime-listener';
+import { useSession } from '@/features/auth/components/session-provider';
 import { getClientApiError } from '@/lib/client-api';
-import type {
-  PaginatedProjects,
-  Project,
-  ProjectStatus,
-  User,
-} from '@/lib/types';
-import { getCurrentUser } from '@/services/client/auth.service';
+import type { PaginatedProjects, Project, ProjectStatus } from '@/lib/types';
 import { getProjects } from '@/services/client/projects.service';
 
 const labels: Record<Project['status'], string> = {
@@ -40,27 +35,23 @@ export default function ProjectsPage() {
   const [projectMeta, setProjectMeta] = useState<
     PaginatedProjects['meta'] | null
   >(null);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { user: currentUser, isLoading: isSessionLoading } = useSession();
 
   const loadProjects = useCallback(async () => {
     setError(null);
 
     try {
-      const [projectResponse, userResponse] = await Promise.all([
-        getProjects({
-          search: searchName || undefined,
-          status: selectedStatus || undefined,
-          page,
-          limit: 12,
-        }),
-        getCurrentUser(),
-      ]);
+      const projectResponse = await getProjects({
+        search: searchName || undefined,
+        status: selectedStatus || undefined,
+        page,
+        limit: 12,
+      });
 
       setProjects(projectResponse.data);
       setProjectMeta(projectResponse.meta);
-      setCurrentUser(userResponse);
     } catch (error) {
       setError(getClientApiError(error, 'Unable to load projects.'));
     } finally {
@@ -69,10 +60,14 @@ export default function ProjectsPage() {
   }, [page, searchName, selectedStatus]);
 
   useEffect(() => {
-    void Promise.resolve().then(loadProjects);
-  }, [loadProjects]);
+    if (isSessionLoading || !currentUser) return;
 
-  if (isLoading) return <ProjectsState message="Loading projects…" />;
+    void Promise.resolve().then(loadProjects);
+  }, [currentUser, isSessionLoading, loadProjects]);
+
+  if (isSessionLoading || isLoading) {
+    return <ProjectsState message="Loading projects…" />;
+  }
   if (error || !currentUser || !projectMeta) {
     return <ProjectsState message={error ?? 'Unable to load projects.'} />;
   }
