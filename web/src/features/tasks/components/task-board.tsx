@@ -20,7 +20,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useState } from 'react';
+import { useEffect, useReducer, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { TaskCard } from './task-card';
@@ -36,6 +36,18 @@ const columns: { status: TaskStatus; title: string }[] = [
 ];
 
 type TasksByStatus = Record<TaskStatus, Task[]>;
+
+type BoardAction =
+  | { type: 'HYDRATE_BOARD'; tasks: Task[] }
+  | {
+      type: 'MOVE_TASK';
+      task: Task;
+      sourceStatus: TaskStatus;
+      targetStatus: TaskStatus;
+      sourceIndex: number;
+      targetIndex: number;
+    }
+  | { type: 'RESTORE_BOARD'; board: TasksByStatus };
 
 function taskId(task: Task) {
   return `task-${task.id}`;
@@ -57,9 +69,32 @@ function getTaskId(value: string) {
   return Number(value.replace('task-', ''));
 }
 
+function boardReducer(
+  board: TasksByStatus,
+  action: BoardAction,
+): TasksByStatus {
+  switch (action.type) {
+    case 'HYDRATE_BOARD':
+      return createBoard(action.tasks);
+
+    case 'MOVE_TASK':
+      return moveTaskInBoard(
+        board,
+        action.task,
+        action.sourceStatus,
+        action.targetStatus,
+        action.sourceIndex,
+        action.targetIndex,
+      );
+
+    case 'RESTORE_BOARD':
+      return action.board;
+  }
+}
+
 export function TaskBoard({ tasks }: { tasks: Task[] }) {
   const router = useRouter();
-  const [board, setBoard] = useState<TasksByStatus>(() => createBoard(tasks));
+  const [board, dispatch] = useReducer(boardReducer, tasks, createBoard);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -69,6 +104,10 @@ export function TaskBoard({ tasks }: { tasks: Task[] }) {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
   );
+
+  useEffect(() => {
+    dispatch({ type: 'HYDRATE_BOARD', tasks });
+  }, [tasks]);
 
   function findTask(taskIdentifier: string) {
     const id = getTaskId(taskIdentifier);
@@ -120,16 +159,14 @@ export function TaskBoard({ tasks }: { tasks: Task[] }) {
     if (targetIndex < 0) return;
 
     const previousBoard = board;
-    const nextBoard = moveTask(
-      board,
+    dispatch({
+      type: 'MOVE_TASK',
       task,
       sourceStatus,
       targetStatus,
       sourceIndex,
       targetIndex,
-    );
-
-    setBoard(nextBoard);
+    });
     setIsSaving(true);
 
     try {
@@ -137,7 +174,7 @@ export function TaskBoard({ tasks }: { tasks: Task[] }) {
 
       router.refresh();
     } catch (error) {
-      setBoard(previousBoard);
+      dispatch({ type: 'RESTORE_BOARD', board: previousBoard });
       setToast(
         getClientApiError(
           error,
@@ -188,7 +225,7 @@ export function TaskBoard({ tasks }: { tasks: Task[] }) {
   );
 }
 
-function moveTask(
+function moveTaskInBoard(
   board: TasksByStatus,
   task: Task,
   sourceStatus: TaskStatus,

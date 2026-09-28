@@ -113,12 +113,7 @@ export default function ProjectBoardPage() {
 
         <BoardFilters members={projectMembers} />
 
-        <TaskBoard
-          key={tasks
-            .map((task) => `${task.id}-${task.status}-${task.position}`)
-            .join(',')}
-          tasks={tasks}
-        />
+        <TaskBoard tasks={tasks} />
 
         {tasks.length === 0 && (
           <p className="panel mt-6 border-dashed p-8 text-center text-sm text-slate-600">
