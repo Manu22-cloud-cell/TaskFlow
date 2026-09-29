@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { type ReactNode } from 'react';
 
 import type { User } from '@/lib/types';
-import { RealtimeNotificationProvider } from '@/features/realtime/components/realtime-notification-provider';
+import { RealtimeNotificationToasts } from '@/features/realtime/components/realtime-notification-toasts';
 
 import { LogoutButton } from './logout-button';
 import { useSession } from './session-provider';
@@ -23,7 +23,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <RealtimeNotificationProvider>
+    <>
       <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur">
         <nav className="mx-auto flex max-w-[1600px] items-center justify-between px-5 py-3 sm:px-8">
           <Link
@@ -56,7 +56,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
       </header>
       {children}
-    </RealtimeNotificationProvider>
+      <RealtimeNotificationToasts />
+    </>
   );
 }
 

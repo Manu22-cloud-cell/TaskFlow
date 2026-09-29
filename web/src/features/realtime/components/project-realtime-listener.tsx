@@ -7,8 +7,8 @@ import { io } from 'socket.io-client';
 import {
   getRealtimeNotificationMessage,
   type RealtimeEventPayload,
-  useRealtimeNotifications,
-} from './realtime-notification-provider';
+} from '../realtime-notification-message';
+import { useRealtimeNotificationStore } from '../stores/realtime-notification-store';
 
 const taskEvents = [
   'task.created',
@@ -42,7 +42,7 @@ export function ProjectRealtimeListener({
   onRefresh?: () => void;
 }) {
   const router = useRouter();
-  const { notify } = useRealtimeNotifications();
+  const notify = useRealtimeNotificationStore((state) => state.notify);
 
   useEffect(() => {
     const apiUrl = process.env.NEXT_PUBLIC_TASKFLOW_API_URL;
