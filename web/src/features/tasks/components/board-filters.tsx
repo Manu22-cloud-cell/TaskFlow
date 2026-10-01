@@ -3,6 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import type { ProjectMember, TaskPriority, TaskStatus } from '@/lib/types';
+import { ExportTasksButton } from './export-tasks-button';
 
 const statuses: { value: TaskStatus; label: string }[] = [
   { value: 'TODO', label: 'To do' },
@@ -17,7 +18,13 @@ const priorities: { value: TaskPriority; label: string }[] = [
   { value: 'HIGH', label: 'High' },
 ];
 
-export function BoardFilters({ members }: { members: ProjectMember[] }) {
+export function BoardFilters({
+  members,
+  projectId,
+}: {
+  members: ProjectMember[];
+  projectId: number;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -87,6 +94,7 @@ export function BoardFilters({ members }: { members: ProjectMember[] }) {
             Clear filters
           </button>
         )}
+        <ExportTasksButton projectId={projectId} />
       </div>
     </section>
   );

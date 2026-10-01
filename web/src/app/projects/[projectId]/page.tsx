@@ -111,7 +111,7 @@ export default function ProjectBoardPage() {
           )}
         </header>
 
-        <BoardFilters members={projectMembers} />
+        <BoardFilters members={projectMembers} projectId={project.id} />
 
         <TaskBoard tasks={tasks} />
 

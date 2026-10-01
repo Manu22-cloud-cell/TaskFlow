@@ -15,6 +15,7 @@ import { ListProjectTasksDto } from './dto/list-project-tasks.dto.js';
 import { MoveTaskDto } from './dto/move-task.dto.js';
 import { UpdateTaskStatusDto } from './dto/update-task-status.dto.js';
 import { RealtimeGateway } from '../realtime/realtime.gateway.js';
+import { csvRow } from '../common/utils/csv.js';
 
 @Injectable()
 export class TasksService {
@@ -97,18 +98,7 @@ export class TasksService {
 
     const page = filters.page ?? 1;
     const limit = filters.limit ?? 50;
-    const dueDateFilter = filters.dueDate
-      ? this.getDueDateFilter(filters.dueDate)
-      : undefined;
-    const where = {
-      projectId,
-      ...(filters.status && { status: filters.status }),
-      ...(filters.assignedToId !== undefined && {
-        assignedToId: filters.assignedToId,
-      }),
-      ...(filters.priority && { priority: filters.priority }),
-      ...(dueDateFilter && { dueDate: dueDateFilter }),
-    };
+    const where = this.projectTaskWhere(projectId, filters);
 
     const [data, total] = await this.prisma.$transaction([
       this.prisma.task.findMany({
@@ -137,6 +127,68 @@ export class TasksService {
         total,
         totalPages: Math.ceil(total / limit),
       },
+    };
+  }
+
+  async exportByProject(
+    projectId: number,
+    filters: ListProjectTasksDto,
+    requester: AuthenticatedUser,
+  ) {
+    await this.projectAccess.assertCanViewProject(projectId, requester);
+
+    const tasks = await this.prisma.task.findMany({
+      where: this.projectTaskWhere(projectId, filters),
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        status: true,
+        priority: true,
+        dueDate: true,
+        assignee: { select: { email: true } },
+      },
+      orderBy: [{ status: 'asc' }, { position: 'asc' }, { id: 'asc' }],
+    });
+
+    const rows = [
+      csvRow([
+        'Task ID',
+        'Title',
+        'Description',
+        'Status',
+        'Priority',
+        'Assignee email',
+        'Due date',
+      ]),
+      ...tasks.map((task) =>
+        csvRow([
+          task.id,
+          task.title,
+          task.description,
+          task.status,
+          task.priority,
+          task.assignee?.email,
+          task.dueDate?.toISOString(),
+        ]),
+      ),
+    ];
+
+    // UTF-8 BOM allows spreadsheet applications to recognize non-ASCII text.
+    return '\uFEFF' + rows.join('\r\n') + '\r\n';
+  }
+
+  private projectTaskWhere(projectId: number, filters: ListProjectTasksDto) {
+    return {
+      projectId,
+      ...(filters.status && { status: filters.status }),
+      ...(filters.assignedToId !== undefined && {
+        assignedToId: filters.assignedToId,
+      }),
+      ...(filters.priority && { priority: filters.priority }),
+      ...(filters.dueDate && {
+        dueDate: this.getDueDateFilter(filters.dueDate),
+      }),
     };
   }
 

@@ -69,6 +69,71 @@ describe('TasksService', () => {
     );
   });
 
+  it('exports all filtered tasks without pagination and serializes CSV fields', async () => {
+    mockPrisma.task.findMany.mockResolvedValue([
+      {
+        id: 10,
+        title: '=1+1',
+        description: 'Hello, "world"\nNext line',
+        status: 'TODO',
+        priority: 'HIGH',
+        assignee: null,
+        dueDate: null,
+      },
+    ]);
+    const csv = await service.exportByProject(
+      4,
+      {
+        status: 'TODO',
+        priority: 'HIGH',
+        assignedToId: 3,
+        dueDate: '2026-10-01',
+        page: 2,
+        limit: 1,
+      } as any,
+      member,
+    );
+
+    expect(mockProjectAccess.assertCanViewProject).toHaveBeenCalledWith(
+      4,
+      member,
+    );
+    const query = mockPrisma.task.findMany.mock.calls[0][0] as any;
+    expect(query.where).toEqual(
+      expect.objectContaining({
+        projectId: 4,
+        status: 'TODO',
+        priority: 'HIGH',
+        assignedToId: 3,
+        dueDate: expect.any(Object),
+      }),
+    );
+    expect(query).not.toHaveProperty('skip');
+    expect(query).not.toHaveProperty('take');
+    expect(csv).toContain(
+      '"10","\'=1+1","Hello, ""world""\nNext line","TODO","HIGH","",""',
+    );
+    expect(csv.startsWith('\uFEFF')).toBe(true);
+  });
+
+  it('does not query export data when project access is denied', async () => {
+    mockProjectAccess.assertCanViewProject.mockRejectedValue(
+      new Error('Forbidden'),
+    );
+    await expect(service.exportByProject(4, {}, member)).rejects.toThrow(
+      'Forbidden',
+    );
+    expect(mockPrisma.task.findMany).not.toHaveBeenCalled();
+  });
+
+  it('exports the header even when no tasks match', async () => {
+    mockPrisma.task.findMany.mockResolvedValue([]);
+    const csv = await service.exportByProject(4, {}, member);
+    expect(csv).toBe(
+      '\uFEFF"Task ID","Title","Description","Status","Priority","Assignee email","Due date"\r\n',
+    );
+  });
+
   it('returns paginated, board-ordered tasks for a project', async () => {
     const tasks = [{ id: 10, status: 'TODO', position: 0 }];
     mockPrisma.task.findMany.mockResolvedValue(tasks);

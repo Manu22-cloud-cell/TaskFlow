@@ -63,6 +63,22 @@ export function createProject(data: CreateProjectInput) {
     .then((response) => response.data);
 }
 
+export function exportProjectTasks(projectId: number, query: URLSearchParams) {
+  const filters = new URLSearchParams();
+
+  for (const key of ['status', 'assignedToId', 'priority', 'dueDate']) {
+    const value = query.get(key);
+    if (value) filters.set(key, value);
+  }
+
+  return clientApi
+    .get<string>(`/projects/${projectId}/tasks/export`, {
+      params: filters,
+      responseType: 'text',
+    })
+    .then((response) => response.data);
+}
+
 export function updateProject(
   projectId: number,
   data: Partial<Pick<Project, 'name' | 'description' | 'status'>>,

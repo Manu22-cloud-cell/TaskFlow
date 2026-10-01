@@ -253,6 +253,7 @@ On login, NestJS sets a 15-minute access cookie and a 7-day refresh cookie. Axio
 | PATCH            | `/tasks/:id/move`            | Move a task to a status/position; manager scope required           |
 | PATCH            | `/tasks/:id/status`          | Transition task status; assigned members may update their own task |
 | GET              | `/projects/:projectId/tasks` | Board query with filters and pagination                            |
+| GET              | `/projects/:projectId/tasks/export` | CSV of all matching tasks; same filters and project-view access, ignoring pagination |
 
 Board query parameters: `status`, `assignedToId`, `priority`, `dueDate`, `page`, and `limit` (maximum `100`).
 
