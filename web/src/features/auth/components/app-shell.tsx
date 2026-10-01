@@ -5,6 +5,7 @@ import { type ReactNode } from 'react';
 
 import type { User } from '@/lib/types';
 import { RealtimeNotificationToasts } from '@/features/realtime/components/realtime-notification-toasts';
+import { NotificationCenter } from '@/features/realtime/components/notification-center';
 
 import { LogoutButton } from './logout-button';
 import { useSession } from './session-provider';
@@ -52,6 +53,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               </p>
             </div>
             <LogoutButton />
+            <NotificationCenter />
           </div>
         </nav>
       </header>

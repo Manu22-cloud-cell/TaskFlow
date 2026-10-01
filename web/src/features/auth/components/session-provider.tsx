@@ -14,6 +14,7 @@ import { usePathname } from 'next/navigation';
 
 import type { User } from '@/lib/types';
 import { getCurrentUser } from '@/services/client/auth.service';
+import { useRealtimeNotificationStore } from '@/features/realtime/stores/realtime-notification-store';
 
 type SessionContextValue = {
   user: User | null;
@@ -37,6 +38,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const hasLoadedUser = useRef(false);
+  const sessionUserId = useRef<number | null>(null);
 
   const refreshUser = useCallback(async () => {
     setIsLoading(true);
@@ -44,10 +46,17 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     try {
       const currentUser = await getCurrentUser();
 
+      if (sessionUserId.current !== currentUser.id) {
+        useRealtimeNotificationStore.getState().clearAll();
+      }
+      sessionUserId.current = currentUser.id;
+
       setUser(currentUser);
       hasLoadedUser.current = true;
       return currentUser;
     } catch {
+      useRealtimeNotificationStore.getState().clearAll();
+      sessionUserId.current = null;
       setUser(null);
       return null;
     } finally {
@@ -67,6 +76,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       isLoading,
       refreshUser,
       clearUser: () => {
+        useRealtimeNotificationStore.getState().clearAll();
+        sessionUserId.current = null;
         hasLoadedUser.current = false;
         setUser(null);
       },
