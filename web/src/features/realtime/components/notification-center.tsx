@@ -62,7 +62,7 @@ export function NotificationCenter() {
         aria-controls={isOpen ? panelId : undefined}
         aria-expanded={isOpen}
         aria-label={`Notifications, ${unreadCount} unread`}
-        className="button-secondary relative size-10 p-2"
+        className="button-secondary notification-trigger relative focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
         onClick={() => setIsOpen((current) => !current)}
         ref={triggerRef}
         type="button"
@@ -73,7 +73,7 @@ export function NotificationCenter() {
           fill="none"
           stroke="currentColor"
           strokeWidth="1.8"
-          className="size-5"
+          className="size-7 shrink-0"
         >
           <path
             strokeLinecap="round"

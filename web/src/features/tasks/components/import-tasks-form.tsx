@@ -129,7 +129,7 @@ export function ImportTasksForm({
             CSV file
             <input
               key={fileKey}
-              className="mt-2 block w-full text-sm"
+              className="mt-2 block w-full rounded-lg border border-slate-300 bg-white p-2 text-sm text-slate-700 file:mr-4 file:cursor-pointer file:rounded-md file:border-0 file:bg-indigo-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-indigo-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:cursor-not-allowed disabled:opacity-50"
               type="file"
               accept=".csv,text/csv"
               disabled={isBusy}
