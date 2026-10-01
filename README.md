@@ -254,8 +254,19 @@ On login, NestJS sets a 15-minute access cookie and a 7-day refresh cookie. Axio
 | PATCH            | `/tasks/:id/status`          | Transition task status; assigned members may update their own task |
 | GET              | `/projects/:projectId/tasks` | Board query with filters and pagination                            |
 | GET              | `/projects/:projectId/tasks/export` | CSV of all matching tasks; same filters and project-view access, ignoring pagination |
+| POST             | `/projects/:projectId/tasks/import/preview` | Validate CSV and preview rows; project management access required |
+| POST             | `/projects/:projectId/tasks/import` | Revalidate and atomically create tasks and activity records |
 
 Board query parameters: `status`, `assignedToId`, `priority`, `dueDate`, `page`, and `limit` (maximum `100`).
+
+CSV import: project owners, project managers, and global admins can use **Import CSV** on the board. Download the template, select a file, preview validation results, and confirm. Both import endpoints accept JSON `{ "csv": "Title,...\n..." }`; preview performs no writes and confirmation validates again.
+
+- Maximum 100 tasks and 50,000 UTF-8 bytes per file.
+- Supported headers: `Title` (required), `Description`, `Status`, `Priority`, `Assignee email`, `Due date`, and optional `Task ID` (ignored). Header names are case-insensitive.
+- Blank status/priority default to `TODO`/`MEDIUM`. Otherwise use the task enum values shown in the API. Dates accept valid ISO dates or timestamps; blank dates and assignees remain unset.
+- Assignee emails must match existing project members. Quoted commas, quotes, multiline descriptions, and UTF-8 BOM are supported.
+- All rows must be valid. Tasks and creation activity records are committed together, appended to their status columns, then a realtime refresh event is sent.
+- Imports always create new tasks; reimporting creates duplicates. CSV exports can be imported, but formula-protection apostrophes are preserved as text. If a network failure leaves the result uncertain, check the board before retrying.
 
 ```http
 GET /projects/12/tasks?status=TODO&page=1&limit=50

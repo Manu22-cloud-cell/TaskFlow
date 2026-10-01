@@ -73,6 +73,36 @@ export function createTask(data: CreateTaskInput) {
   return clientApi.post<Task>('/tasks', data);
 }
 
+export type TaskImportPreview = {
+  valid: boolean;
+  rows: {
+    row: number;
+    title: string;
+    description: string;
+    status: TaskStatus;
+    priority: TaskPriority;
+    assigneeEmail: string;
+    dueDate: string;
+    errors: string[];
+  }[];
+};
+
+export function previewTaskImport(projectId: number, csv: string) {
+  return clientApi
+    .post<TaskImportPreview>(`/projects/${projectId}/tasks/import/preview`, {
+      csv,
+    })
+    .then((response) => response.data);
+}
+
+export function importTasks(projectId: number, csv: string) {
+  return clientApi
+    .post<{ importedCount: number }>(`/projects/${projectId}/tasks/import`, {
+      csv,
+    })
+    .then((response) => response.data);
+}
+
 export function updateTask(taskId: number, data: UpdateTaskInput) {
   return clientApi.patch<Task>(`/tasks/${taskId}`, data);
 }

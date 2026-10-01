@@ -1,5 +1,7 @@
 import {
   Controller,
+  Body,
+  Post,
   Get,
   Param,
   ParseIntPipe,
@@ -14,11 +16,34 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { AuthenticatedUser } from '../projects/project-access.service.js';
 import { ListProjectTasksDto } from './dto/list-project-tasks.dto.js';
 import { TasksService } from './tasks.service.js';
+import { TaskImportService } from './task-import.service.js';
+import { ImportTasksDto } from './dto/import-tasks.dto.js';
 
 @Controller('projects/:projectId/tasks')
 @UseGuards(JwtAuthGuard)
 export class ProjectTasksController {
-  constructor(private readonly tasksService: TasksService) {}
+  constructor(
+    private readonly tasksService: TasksService,
+    private readonly taskImport: TaskImportService,
+  ) {}
+
+  @Post('import/preview')
+  previewImport(
+    @Param('projectId', ParseIntPipe) projectId: number,
+    @Body() body: ImportTasksDto,
+    @Req() request: Request & { user: AuthenticatedUser },
+  ) {
+    return this.taskImport.preview(projectId, body.csv, request.user);
+  }
+
+  @Post('import')
+  importCsv(
+    @Param('projectId', ParseIntPipe) projectId: number,
+    @Body() body: ImportTasksDto,
+    @Req() request: Request & { user: AuthenticatedUser },
+  ) {
+    return this.taskImport.import(projectId, body.csv, request.user);
+  }
 
   @Get('export')
   async exportCsv(

@@ -11,6 +11,7 @@ import { BoardFilters } from '@/features/tasks/components/board-filters';
 import { BoardPagination } from '@/features/tasks/components/board-pagination';
 import { CreateTaskForm } from '@/features/tasks/components/create-task-form';
 import { TaskBoard } from '@/features/tasks/components/task-board';
+import { ImportTasksForm } from '@/features/tasks/components/import-tasks-form';
 import { getClientApiError } from '@/lib/client-api';
 import type { PaginatedTasks, Project, ProjectMember, Task } from '@/lib/types';
 import {
@@ -112,6 +113,10 @@ export default function ProjectBoardPage() {
         </header>
 
         <BoardFilters members={projectMembers} projectId={project.id} />
+
+        {canManageTasks && (
+          <ImportTasksForm projectId={project.id} onImported={loadBoard} />
+        )}
 
         <TaskBoard tasks={tasks} />
 
