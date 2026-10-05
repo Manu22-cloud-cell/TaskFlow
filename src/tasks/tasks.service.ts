@@ -80,7 +80,7 @@ export class TasksService {
         type: TaskActivityType.TASK_CREATED,
       },
     });
-    this.realtime.emitTaskEvent(
+    const notificationId = this.realtime.emitTaskEvent(
       task.projectId,
       'task.created',
       task.id,
@@ -91,6 +91,7 @@ export class TasksService {
       requester.sub,
       `Task assigned to you: ${task.title}`,
       `/tasks/${task.id}`,
+      notificationId,
     );
     return task;
   }
@@ -354,7 +355,7 @@ export class TasksService {
           ...event,
         })),
       });
-    this.realtime.emitTaskEvent(
+    const notificationId = this.realtime.emitTaskEvent(
       updatedTask.projectId,
       'task.updated',
       updatedTask.id,
@@ -366,6 +367,7 @@ export class TasksService {
         requester.sub,
         `Task assigned to you: ${updatedTask.title}`,
         `/tasks/${updatedTask.id}`,
+        notificationId,
       );
     }
     return updatedTask;

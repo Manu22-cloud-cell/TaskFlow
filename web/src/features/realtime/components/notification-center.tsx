@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+
 import { useEffect, useId, useRef, useState } from 'react';
 
 import { useRealtimeNotificationStore } from '../stores/realtime-notification-store';
@@ -134,7 +136,20 @@ export function NotificationCenter() {
                   key={notification.id}
                 >
                   <p className="text-sm text-slate-800">
-                    {notification.message}
+                    {notification.href ? (
+                      <Link
+                        href={notification.href}
+                        className="hover:underline"
+                        onClick={() => {
+                          markAsRead(notification.id);
+                          setIsOpen(false);
+                        }}
+                      >
+                        {notification.message}
+                      </Link>
+                    ) : (
+                      notification.message
+                    )}
                   </p>
                   <div className="mt-2 flex items-center justify-between gap-3 text-xs">
                     <time

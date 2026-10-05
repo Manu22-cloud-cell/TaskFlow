@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { io } from 'socket.io-client';
 import { clientApi } from '@/lib/client-api';
+import { useRealtimeNotificationStore } from '../stores/realtime-notification-store';
 
 type DesktopEvent = {
   id: string;
@@ -102,6 +103,14 @@ export function DesktopNotifications({ userId }: { userId: number }) {
         return;
       seen.add(event.id);
       if (seen.size > 200) seen.delete(seen.values().next().value!);
+      if (!/^\/(projects(?:\/\d+)?|tasks\/\d+)$/.test(event.href)) return;
+      // Bell history is independent of desktop permissions and tab visibility.
+      useRealtimeNotificationStore.getState().notify(event.message, {
+        id: event.id,
+        href: event.href,
+        personal: true,
+        showToast: document.visibilityState === 'visible',
+      });
       if (
         !enabledRef.current ||
         document.visibilityState !== 'hidden' ||
@@ -109,7 +118,6 @@ export function DesktopNotifications({ userId }: { userId: number }) {
         Notification.permission !== 'granted'
       )
         return;
-      if (!/^\/(projects(?:\/\d+)?|tasks\/\d+)$/.test(event.href)) return;
       try {
         const notification = new Notification('TaskFlow', {
           body: event.message,

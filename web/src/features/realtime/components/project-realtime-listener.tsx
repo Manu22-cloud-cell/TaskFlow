@@ -75,7 +75,9 @@ export function ProjectRealtimeListener({
       refreshPage();
 
       if (payload.actorId !== currentUserId) {
-        notify(getRealtimeNotificationMessage(event, payload, currentUserId));
+        notify(getRealtimeNotificationMessage(event, payload, currentUserId), {
+          id: payload.id,
+        });
       }
     }
 
@@ -87,6 +89,7 @@ export function ProjectRealtimeListener({
             payload,
             currentUserId,
           ),
+          { id: payload.id },
         );
       }
 
@@ -101,6 +104,7 @@ export function ProjectRealtimeListener({
             payload,
             currentUserId,
           ),
+          { id: payload.id },
         );
       }
 

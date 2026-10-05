@@ -1,4 +1,5 @@
 export type RealtimeEventPayload = {
+  id?: string;
   actorId?: number;
   userId?: number;
   projectName?: string;

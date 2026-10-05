@@ -107,6 +107,19 @@ describe('RealtimeGateway', () => {
     expect(client.disconnect).toHaveBeenCalledWith(true);
   });
 
+  it('shares event IDs across project and personal delivery', () => {
+    const id = gateway.emitTaskEvent(12, 'task.created', 45, 2);
+    gateway.emitDesktopNotification(3, 2, 'Assigned', '/tasks/45', id);
+    expect(mockRoom.emit).toHaveBeenCalledWith(
+      'task.created',
+      expect.objectContaining({ id }),
+    );
+    expect(mockUserRoom.emit).toHaveBeenCalledWith(
+      'notification.desktop',
+      expect.objectContaining({ id }),
+    );
+  });
+
   it('authorizes a user before joining a project room', async () => {
     const user = { sub: 2, email: 'member@example.com', role: 'MEMBER' };
     const client = {
@@ -131,6 +144,7 @@ describe('RealtimeGateway', () => {
 
     expect(mockServer.to).toHaveBeenCalledWith('project:12');
     expect(mockRoom.emit).toHaveBeenCalledWith('task.moved', {
+      id: expect.any(String),
       projectId: 12,
       taskId: 45,
       actorId: 2,
@@ -142,6 +156,7 @@ describe('RealtimeGateway', () => {
 
     expect(mockServer.to).toHaveBeenCalledWith('project:12');
     expect(mockRoom.emit).toHaveBeenCalledWith('comment.created', {
+      id: expect.any(String),
       projectId: 12,
       taskId: 45,
       commentId: 9,
@@ -156,6 +171,7 @@ describe('RealtimeGateway', () => {
     await gateway.emitProjectMemberRemoved(12, 3, 2, 'Website Redesign');
 
     expect(mockUserRoom.emit).toHaveBeenCalledWith('project.member.removed', {
+      id: expect.any(String),
       projectId: 12,
       userId: 3,
       actorId: 2,
@@ -163,6 +179,7 @@ describe('RealtimeGateway', () => {
     });
     expect(socketsLeave).toHaveBeenCalledWith('project:12');
     expect(mockRoom.emit).toHaveBeenCalledWith('project.member.removed', {
+      id: expect.any(String),
       projectId: 12,
       userId: 3,
       actorId: 2,
@@ -180,12 +197,14 @@ describe('RealtimeGateway', () => {
     );
 
     expect(mockRoom.emit).toHaveBeenCalledWith('project.member.added', {
+      id: expect.any(String),
       projectId: 12,
       userId: 3,
       actorId: 2,
       projectName: 'Website Redesign',
     });
     expect(mockUserRoom.emit).toHaveBeenCalledWith('project.member.added', {
+      id: expect.any(String),
       projectId: 12,
       userId: 3,
       actorId: 2,

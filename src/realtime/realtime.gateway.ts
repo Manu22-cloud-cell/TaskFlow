@@ -101,11 +101,14 @@ export class RealtimeGateway implements OnGatewayConnection {
     taskId: number,
     actorId: number,
   ) {
+    const id = randomUUID();
     this.server.to(this.projectRoom(projectId)).emit(event, {
+      id,
       projectId,
       taskId,
       actorId,
     });
+    return id;
   }
 
   emitDesktopNotification(
@@ -113,10 +116,11 @@ export class RealtimeGateway implements OnGatewayConnection {
     actorId: number,
     message: string,
     href: string,
+    id = randomUUID(),
   ) {
     if (!userId || userId === actorId) return;
     this.server.to(this.userRoom(userId)).emit('notification.desktop', {
-      id: randomUUID(),
+      id,
       userId,
       actorId,
       message,
@@ -131,12 +135,15 @@ export class RealtimeGateway implements OnGatewayConnection {
     commentId: number,
     actorId: number,
   ) {
+    const id = randomUUID();
     this.server.to(this.projectRoom(projectId)).emit(event, {
+      id,
       projectId,
       taskId,
       commentId,
       actorId,
     });
+    return id;
   }
 
   emitProjectEvent(
@@ -157,7 +164,13 @@ export class RealtimeGateway implements OnGatewayConnection {
     actorId: number,
     projectName: string,
   ) {
-    const payload = { projectId, userId, actorId, projectName };
+    const payload = {
+      id: randomUUID(),
+      projectId,
+      userId,
+      actorId,
+      projectName,
+    };
 
     this.emitDesktopNotification(
       userId,
@@ -166,6 +179,7 @@ export class RealtimeGateway implements OnGatewayConnection {
         ? `You were added to ${projectName}.`
         : `Your role in ${projectName} was updated.`,
       `/projects/${projectId}`,
+      payload.id,
     );
 
     this.server.to(this.projectRoom(projectId)).emit(event, payload);
@@ -181,13 +195,20 @@ export class RealtimeGateway implements OnGatewayConnection {
     projectName: string,
   ) {
     const event = 'project.member.removed';
-    const payload = { projectId, userId, actorId, projectName };
+    const payload = {
+      id: randomUUID(),
+      projectId,
+      userId,
+      actorId,
+      projectName,
+    };
 
     this.emitDesktopNotification(
       userId,
       actorId,
       `You were removed from ${projectName}.`,
       '/projects',
+      payload.id,
     );
 
     this.server.to(this.userRoom(userId)).emit(event, payload);

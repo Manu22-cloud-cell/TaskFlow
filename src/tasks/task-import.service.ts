@@ -123,7 +123,7 @@ export class TaskImportService {
       });
 
     // One event refreshes the project without flooding other users with popups.
-    this.realtime.emitTaskEvent(
+    const notificationId = this.realtime.emitTaskEvent(
       projectId,
       'task.created',
       tasks[0].id,
@@ -137,6 +137,7 @@ export class TaskImportService {
           requester.sub,
           'New imported tasks were assigned to you.',
           `/projects/${projectId}`,
+          notificationId,
         );
       }
     }

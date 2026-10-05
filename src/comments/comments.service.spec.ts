@@ -78,6 +78,7 @@ describe('CommentsService', () => {
   });
 
   it('alerts the assigned member about a new comment', async () => {
+    mockRealtime.emitCommentEvent.mockReturnValue('comment-event-1');
     mockPrisma.task.findUnique.mockResolvedValue({
       ...task,
       title: 'Build login',
@@ -91,6 +92,7 @@ describe('CommentsService', () => {
       member.sub,
       'New comment on your task: Build login',
       '/tasks/45',
+      'comment-event-1',
     );
   });
 

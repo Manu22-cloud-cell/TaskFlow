@@ -83,7 +83,7 @@ export class CommentsService {
       });
       return comment;
     });
-    this.realtime.emitCommentEvent(
+    const notificationId = this.realtime.emitCommentEvent(
       task.projectId,
       'comment.created',
       taskId,
@@ -106,6 +106,7 @@ export class CommentsService {
           user.sub,
           `New comment on your task: ${task.title}`,
           `/tasks/${taskId}`,
+          notificationId,
         );
     }
     return comment;

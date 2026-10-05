@@ -6,11 +6,21 @@ export type RealtimeNotification = {
   createdAt: number;
   isRead: boolean;
   isToastVisible: boolean;
+  href?: string;
+  personal?: boolean;
 };
 
 type RealtimeNotificationState = {
   notifications: RealtimeNotification[];
-  notify: (message: string) => void;
+  notify: (
+    message: string,
+    options?: {
+      id?: string;
+      href?: string;
+      personal?: boolean;
+      showToast?: boolean;
+    },
+  ) => void;
   dismiss: (notificationId: string) => void;
   markAsRead: (notificationId: string) => void;
   markAllAsRead: () => void;
@@ -25,13 +35,30 @@ export const useRealtimeNotificationStore = create<RealtimeNotificationState>(
   (set, get) => ({
     notifications: [],
 
-    notify: (message) => {
+    notify: (message, options = {}) => {
+      const id = options.id ?? `${Date.now()}-${Math.random()}`;
+      const existing = get().notifications.find((item) => item.id === id);
+      if (existing) {
+        // The personal message is more specific than the project-room message.
+        if (options.personal && !existing.personal) {
+          set((state) => ({
+            notifications: state.notifications.map((item) =>
+              item.id === id
+                ? { ...item, message, href: options.href, personal: true }
+                : item,
+            ),
+          }));
+        }
+        return;
+      }
       const notification = {
-        id: `${Date.now()}-${Math.random()}`,
+        id,
         message,
         createdAt: Date.now(),
         isRead: false,
-        isToastVisible: true,
+        isToastVisible: options.showToast ?? true,
+        href: options.href,
+        personal: options.personal,
       };
 
       set((state) => ({

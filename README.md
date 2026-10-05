@@ -33,6 +33,8 @@ TaskFlow is a Jira-style collaborative task-management application. It has a Nes
 
 ### Desktop notifications
 
+User-targeted events now feed both the bell notification center and optional desktop alerts through the app-wide listener. Assignments, comments on assigned tasks, and membership updates reach the bell on any protected page, even with desktop permission denied or alerts disabled. Related project-room messages share an event ID and merge into one entry, preferring the personal message. Click a linked bell entry to open its task/project and mark it read. Other project collaboration updates remain scoped to the open project. History is still in memory; offline delivery and cross-tab coordination are not provided. The wire event retains the name `notification.desktop` for compatibility with older clients.
+
 Click **Enable desktop alerts** in the signed-in application shell and allow the browser permission prompt. The preference is saved per user in this browser; **Disable desktop alerts** turns it off without changing browser permissions. If permission was blocked, enable it in the browser's site settings first.
 
 Alerts are sent to the affected user for task assignments (including imported tasks), new comments on assigned tasks, and project membership changes. Self-authored actions are suppressed. Alerts appear only while the TaskFlow tab is hidden, and clicking one opens the relevant task/project. The listener works across protected pages and disconnects when the signed-in shell unmounts; open alerts are closed on cleanup.
