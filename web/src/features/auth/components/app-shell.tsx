@@ -6,6 +6,7 @@ import { type ReactNode } from 'react';
 import type { User } from '@/lib/types';
 import { RealtimeNotificationToasts } from '@/features/realtime/components/realtime-notification-toasts';
 import { NotificationCenter } from '@/features/realtime/components/notification-center';
+import { DesktopNotifications } from '@/features/realtime/components/desktop-notifications';
 
 import { LogoutButton } from './logout-button';
 import { useSession } from './session-provider';
@@ -56,6 +57,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <NotificationCenter />
           </div>
         </nav>
+        <DesktopNotifications key={user.id} userId={user.id} />
       </header>
       {children}
       <RealtimeNotificationToasts />

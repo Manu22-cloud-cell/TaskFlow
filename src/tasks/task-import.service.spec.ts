@@ -9,7 +9,10 @@ describe('TaskImportService', () => {
     $transaction: jest.fn(),
   };
   const access = { assertCanManageProject: jest.fn() };
-  const realtime = { emitTaskEvent: jest.fn() };
+  const realtime = {
+    emitTaskEvent: jest.fn(),
+    emitDesktopNotification: jest.fn(),
+  };
   const requester = {
     sub: 1,
     role: 'MANAGER',

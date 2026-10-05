@@ -129,6 +129,17 @@ export class TaskImportService {
       tasks[0].id,
       requester.sub,
     );
+    const assignees = new Set(preview.rows.map((row) => row.assignedToId));
+    for (const userId of assignees) {
+      if (userId !== undefined) {
+        this.realtime.emitDesktopNotification(
+          userId,
+          requester.sub,
+          'New imported tasks were assigned to you.',
+          `/projects/${projectId}`,
+        );
+      }
+    }
     return { importedCount: tasks.length };
   }
 }

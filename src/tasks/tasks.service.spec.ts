@@ -30,6 +30,7 @@ describe('TasksService', () => {
     assertProjectMember: jest.fn(),
   };
   const mockRealtime = {
+    emitDesktopNotification: jest.fn(),
     emitTaskEvent: jest.fn(),
   };
   let service: TasksService;

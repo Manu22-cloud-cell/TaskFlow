@@ -18,6 +18,7 @@ describe('CommentsService', () => {
   };
   const task = { id: 45, projectId: 12 };
   const mockPrisma = {
+    projectMember: { findUnique: jest.fn() },
     task: { findUnique: jest.fn() },
     comment: {
       create: jest.fn(),
@@ -33,7 +34,10 @@ describe('CommentsService', () => {
     assertCanViewProject: jest.fn(),
     assertCanManageProject: jest.fn(),
   };
-  const mockRealtime = { emitCommentEvent: jest.fn() };
+  const mockRealtime = {
+    emitCommentEvent: jest.fn(),
+    emitDesktopNotification: jest.fn(),
+  };
 
   let service: CommentsService;
 
@@ -71,6 +75,31 @@ describe('CommentsService', () => {
       9,
       member.sub,
     );
+  });
+
+  it('alerts the assigned member about a new comment', async () => {
+    mockPrisma.task.findUnique.mockResolvedValue({
+      ...task,
+      title: 'Build login',
+      assignedToId: 5,
+    });
+    mockPrisma.projectMember.findUnique.mockResolvedValue({ userId: 5 });
+    mockPrisma.comment.create.mockResolvedValue({ id: 9 });
+    await service.create(task.id, 'Please review', member);
+    expect(mockRealtime.emitDesktopNotification).toHaveBeenCalledWith(
+      5,
+      member.sub,
+      'New comment on your task: Build login',
+      '/tasks/45',
+    );
+  });
+
+  it('does not alert an assignee who lost membership', async () => {
+    mockPrisma.task.findUnique.mockResolvedValue({ ...task, assignedToId: 5 });
+    mockPrisma.projectMember.findUnique.mockResolvedValue(null);
+    mockPrisma.comment.create.mockResolvedValue({ id: 9 });
+    await service.create(task.id, 'Private project update', member);
+    expect(mockRealtime.emitDesktopNotification).not.toHaveBeenCalled();
   });
 
   it('returns newest comments first with a cursor for the next page', async () => {

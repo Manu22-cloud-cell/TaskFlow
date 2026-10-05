@@ -86,6 +86,12 @@ export class TasksService {
       task.id,
       requester.sub,
     );
+    this.realtime.emitDesktopNotification(
+      task.assignedToId,
+      requester.sub,
+      `Task assigned to you: ${task.title}`,
+      `/tasks/${task.id}`,
+    );
     return task;
   }
 
@@ -354,6 +360,14 @@ export class TasksService {
       updatedTask.id,
       requester.sub,
     );
+    if (existingTask.assignedToId !== updatedTask.assignedToId) {
+      this.realtime.emitDesktopNotification(
+        updatedTask.assignedToId,
+        requester.sub,
+        `Task assigned to you: ${updatedTask.title}`,
+        `/tasks/${updatedTask.id}`,
+      );
+    }
     return updatedTask;
   }
 

@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { ConfigService } from '@nestjs/config';
 import {
   ConnectedSocket,
@@ -107,6 +108,22 @@ export class RealtimeGateway implements OnGatewayConnection {
     });
   }
 
+  emitDesktopNotification(
+    userId: number | null | undefined,
+    actorId: number,
+    message: string,
+    href: string,
+  ) {
+    if (!userId || userId === actorId) return;
+    this.server.to(this.userRoom(userId)).emit('notification.desktop', {
+      id: randomUUID(),
+      userId,
+      actorId,
+      message,
+      href,
+    });
+  }
+
   emitCommentEvent(
     projectId: number,
     event: CommentRealtimeEvent,
@@ -142,6 +159,15 @@ export class RealtimeGateway implements OnGatewayConnection {
   ) {
     const payload = { projectId, userId, actorId, projectName };
 
+    this.emitDesktopNotification(
+      userId,
+      actorId,
+      event === 'project.member.added'
+        ? `You were added to ${projectName}.`
+        : `Your role in ${projectName} was updated.`,
+      `/projects/${projectId}`,
+    );
+
     this.server.to(this.projectRoom(projectId)).emit(event, payload);
     if (event === 'project.member.added') {
       this.server.to(this.userRoom(userId)).emit(event, payload);
@@ -156,6 +182,13 @@ export class RealtimeGateway implements OnGatewayConnection {
   ) {
     const event = 'project.member.removed';
     const payload = { projectId, userId, actorId, projectName };
+
+    this.emitDesktopNotification(
+      userId,
+      actorId,
+      `You were removed from ${projectName}.`,
+      '/projects',
+    );
 
     this.server.to(this.userRoom(userId)).emit(event, payload);
     await this.server

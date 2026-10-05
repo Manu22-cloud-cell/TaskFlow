@@ -68,6 +68,32 @@ describe('RealtimeGateway', () => {
     expect(client.disconnect).not.toHaveBeenCalled();
   });
 
+  it('targets desktop events to the recipient personal room', () => {
+    gateway.emitDesktopNotification(
+      3,
+      2,
+      'A task was assigned to you.',
+      '/tasks/10',
+    );
+    expect(mockServer.to).toHaveBeenCalledWith('user:3');
+    expect(mockUserRoom.emit).toHaveBeenCalledWith(
+      'notification.desktop',
+      expect.objectContaining({
+        id: expect.any(String),
+        userId: 3,
+        actorId: 2,
+        href: '/tasks/10',
+      }),
+    );
+    expect(mockRoom.emit).not.toHaveBeenCalled();
+  });
+
+  it('suppresses self-authored and unassigned desktop events', () => {
+    gateway.emitDesktopNotification(2, 2, 'Self update', '/tasks/10');
+    gateway.emitDesktopNotification(null, 2, 'No assignee', '/tasks/10');
+    expect(mockServer.to).not.toHaveBeenCalled();
+  });
+
   it('disconnects a socket when authentication fails', async () => {
     const client = {
       handshake: { headers: {} },

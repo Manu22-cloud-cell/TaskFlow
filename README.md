@@ -31,6 +31,16 @@ TaskFlow is a Jira-style collaborative task-management application. It has a Nes
 
 ## Setup
 
+### Desktop notifications
+
+Click **Enable desktop alerts** in the signed-in application shell and allow the browser permission prompt. The preference is saved per user in this browser; **Disable desktop alerts** turns it off without changing browser permissions. If permission was blocked, enable it in the browser's site settings first.
+
+Alerts are sent to the affected user for task assignments (including imported tasks), new comments on assigned tasks, and project membership changes. Self-authored actions are suppressed. Alerts appear only while the TaskFlow tab is hidden, and clicking one opens the relevant task/project. The listener works across protected pages and disconnects when the signed-in shell unmounts; open alerts are closed on cleanup.
+
+This is desktop Notifications API delivery over Socket.IO, not Web Push: keep a TaskFlow tab open and connected. There is no offline replay or delivery after closing the tab. Use HTTPS (such as Vercel) or localhost; the HTTP EC2 public-IP deployment cannot enable this feature. Mobile browsers may require a service-worker implementation and are not supported by this first version. Browser/OS notification settings can suppress display; existing in-app notifications continue to work.
+
+Manual test: sign in as a member in one browser, enable alerts, and switch to another tab. In a second browser, have a manager assign a task to that member or comment on an already assigned task. Verify the desktop alert opens the task; repeat with the member tab visible, alerts disabled, and a self-authored action to confirm suppression.
+
 ### Prerequisites
 
 - Node.js 20+ and npm

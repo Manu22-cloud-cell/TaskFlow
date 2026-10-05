@@ -90,6 +90,24 @@ export class CommentsService {
       comment.id,
       user.sub,
     );
+    // Removed members can remain assigned to old tasks; do not disclose new activity to them.
+    if (task.assignedToId && task.assignedToId !== user.sub) {
+      const membership = await this.prisma.projectMember.findUnique({
+        where: {
+          projectId_userId: {
+            projectId: task.projectId,
+            userId: task.assignedToId,
+          },
+        },
+      });
+      if (membership)
+        this.realtime.emitDesktopNotification(
+          task.assignedToId,
+          user.sub,
+          `New comment on your task: ${task.title}`,
+          `/tasks/${taskId}`,
+        );
+    }
     return comment;
   }
   async update(
