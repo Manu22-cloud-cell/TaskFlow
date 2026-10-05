@@ -39,6 +39,7 @@ describe('RealtimeGateway', () => {
       mockJwtService as unknown as JwtService,
       mockConfigService as unknown as ConfigService,
       mockProjectAccess as unknown as ProjectAccessService,
+      { send: jest.fn() } as any,
     );
     (gateway as unknown as { server: typeof mockServer }).server = mockServer;
   });

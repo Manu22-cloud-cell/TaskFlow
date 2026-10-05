@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
+import { PushService } from '../push/push.service.js';
 import { ConfigService } from '@nestjs/config';
 import {
   ConnectedSocket,
@@ -51,6 +52,7 @@ export class RealtimeGateway implements OnGatewayConnection {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly projectAccess: ProjectAccessService,
+    private readonly push: PushService,
   ) {}
 
   async handleConnection(client: Socket) {
@@ -119,13 +121,17 @@ export class RealtimeGateway implements OnGatewayConnection {
     id = randomUUID(),
   ) {
     if (!userId || userId === actorId) return;
-    this.server.to(this.userRoom(userId)).emit('notification.desktop', {
+    const notification = {
       id,
       userId,
       actorId,
       message,
       href,
-    });
+    };
+    this.server
+      .to(this.userRoom(userId))
+      .emit('notification.desktop', notification);
+    void this.push.send(notification);
   }
 
   emitCommentEvent(

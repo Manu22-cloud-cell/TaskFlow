@@ -58,6 +58,9 @@ clientApi.interceptors.response.use(
       return clientApi(request);
     } catch {
       if (typeof window !== 'undefined') {
+        const { bindPushOwner } =
+          await import('@/features/realtime/firebase-push');
+        await bindPushOwner(null).catch(() => undefined);
         window.location.replace('/login');
       }
 

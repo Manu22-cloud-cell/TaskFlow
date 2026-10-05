@@ -7,6 +7,7 @@ import type { User } from '@/lib/types';
 import { RealtimeNotificationToasts } from '@/features/realtime/components/realtime-notification-toasts';
 import { NotificationCenter } from '@/features/realtime/components/notification-center';
 import { DesktopNotifications } from '@/features/realtime/components/desktop-notifications';
+import { PersonalNotificationListener } from '@/features/realtime/components/personal-notification-listener';
 
 import { LogoutButton } from './logout-button';
 import { useSession } from './session-provider';
@@ -26,6 +27,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <>
+      <PersonalNotificationListener key={user.id} userId={user.id} />
       <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur">
         <nav className="mx-auto flex max-w-[1600px] items-center justify-between px-5 py-3 sm:px-8">
           <Link

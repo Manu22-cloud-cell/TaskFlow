@@ -12,6 +12,7 @@ describe('UsersService', () => {
   let service: UsersService;
 
   const prisma = {
+    pushSubscription: { deleteMany: jest.fn() },
     user: {
       findMany: jest.fn(),
       count: jest.fn(),
@@ -33,6 +34,18 @@ describe('UsersService', () => {
   });
 
   describe('findAll', () => {
+    it('revokes push registrations on logout', async () => {
+      await service.clearRefreshToken(2);
+      expect(prisma.pushSubscription.deleteMany).toHaveBeenCalledWith({
+        where: { userId: 2 },
+      });
+      expect(prisma.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 2 },
+          data: expect.objectContaining({ refreshTokenHash: null }),
+        }),
+      );
+    });
     it('returns a paginated safe user list', async () => {
       const users = [
         {

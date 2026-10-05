@@ -14,6 +14,7 @@ import { usePathname } from 'next/navigation';
 
 import type { User } from '@/lib/types';
 import { getCurrentUser } from '@/services/client/auth.service';
+import { bindPushOwner } from '@/features/realtime/firebase-push';
 import { useRealtimeNotificationStore } from '@/features/realtime/stores/realtime-notification-store';
 
 type SessionContextValue = {
@@ -55,6 +56,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       hasLoadedUser.current = true;
       return currentUser;
     } catch {
+      void bindPushOwner(null).catch(() => undefined);
       useRealtimeNotificationStore.getState().clearAll();
       sessionUserId.current = null;
       setUser(null);
@@ -76,6 +78,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       isLoading,
       refreshUser,
       clearUser: () => {
+        void bindPushOwner(null).catch(() => undefined);
         useRealtimeNotificationStore.getState().clearAll();
         sessionUserId.current = null;
         hasLoadedUser.current = false;

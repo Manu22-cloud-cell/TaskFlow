@@ -1,4 +1,5 @@
 import { clientApi } from '@/lib/client-api';
+import { bindPushOwner } from '@/features/realtime/firebase-push';
 import type { User } from '@/lib/types';
 
 export function login(credentials: { email: string; password: string }) {
@@ -13,7 +14,8 @@ export function register(data: {
   return clientApi.post('/auth/register', data);
 }
 
-export function logout() {
+export async function logout() {
+  await bindPushOwner(null).catch(() => undefined);
   return clientApi.post('/auth/logout');
 }
 

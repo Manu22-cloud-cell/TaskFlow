@@ -253,6 +253,8 @@ export class UsersService {
   }
 
   async clearRefreshToken(id: number) {
+    // Logout revokes all push registrations for this account, alongside its refresh session.
+    await this.prisma.pushSubscription.deleteMany({ where: { userId: id } });
     await this.prisma.user.update({
       where: { id },
       data: {
